@@ -4,12 +4,14 @@ import '../models/home_store.dart';
 import '../models/inventory_item.dart';
 import '../models/shopping_list_entry.dart';
 import '../storage/inventory_store.dart';
+import '../widgets/unfocus_on_tap.dart';
 import 'add_item_page.dart';
 
 class ShoppingPage extends StatefulWidget {
-  const ShoppingPage({required this.inventoryStore, super.key});
+  const ShoppingPage({required this.inventoryStore, this.onSignOut, super.key});
 
   final InventoryStore inventoryStore;
+  final VoidCallback? onSignOut;
 
   @override
   State<ShoppingPage> createState() => _ShoppingPageState();
@@ -177,68 +179,72 @@ class _ShoppingPageState extends State<ShoppingPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Nuovo negozio'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    key: const Key('storeNameField'),
-                    autofocus: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Nome negozio',
-                      border: OutlineInputBorder(),
+            return UnfocusOnTap(
+              child: AlertDialog(
+                title: const Text('Nuovo negozio'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      key: const Key('storeNameField'),
+                      autofocus: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Nome negozio',
+                        border: OutlineInputBorder(),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      textCapitalization: TextCapitalization.words,
+                      onChanged: (value) {
+                        storeName = value;
+                      },
                     ),
-                    onChanged: (value) {
-                      storeName = value;
-                    },
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: category,
+                      decoration: const InputDecoration(
+                        labelText: 'Categoria',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _categories
+                          .map(
+                            (category) => DropdownMenuItem(
+                              value: category,
+                              child: Text(category),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) {
+                          return;
+                        }
+                        setDialogState(() {
+                          category = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Annulla'),
                   ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: category,
-                    decoration: const InputDecoration(
-                      labelText: 'Categoria',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _categories
-                        .map(
-                          (category) => DropdownMenuItem(
-                            value: category,
-                            child: Text(category),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) {
+                  FilledButton.icon(
+                    key: const Key('saveStoreButton'),
+                    onPressed: () {
+                      final normalizedName = storeName.trim();
+                      if (normalizedName.isEmpty) {
                         return;
                       }
-                      setDialogState(() {
-                        category = value;
-                      });
+                      Navigator.of(context).pop(
+                        HomeStore(name: normalizedName, category: category),
+                      );
                     },
+                    icon: const Icon(Icons.add_business_outlined),
+                    label: const Text('Aggiungi'),
                   ),
                 ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Annulla'),
-                ),
-                FilledButton.icon(
-                  key: const Key('saveStoreButton'),
-                  onPressed: () {
-                    final normalizedName = storeName.trim();
-                    if (normalizedName.isEmpty) {
-                      return;
-                    }
-                    Navigator.of(
-                      context,
-                    ).pop(HomeStore(name: normalizedName, category: category));
-                  },
-                  icon: const Icon(Icons.add_business_outlined),
-                  label: const Text('Aggiungi'),
-                ),
-              ],
             );
           },
         );
@@ -283,103 +289,107 @@ class _ShoppingPageState extends State<ShoppingPage> {
                 .where((store) => store.category == category)
                 .toList(growable: false);
 
-            return AlertDialog(
-              title: const Text('Aggiungi alla spesa'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      key: const Key('manualEntryNameField'),
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome item',
-                        border: OutlineInputBorder(),
+            return UnfocusOnTap(
+              child: AlertDialog(
+                title: const Text('Aggiungi alla spesa'),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        key: const Key('manualEntryNameField'),
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome item',
+                          border: OutlineInputBorder(),
+                        ),
+                        textInputAction: TextInputAction.done,
+                        textCapitalization: TextCapitalization.sentences,
+                        onChanged: (value) {
+                          itemName = value;
+                        },
                       ),
-                      onChanged: (value) {
-                        itemName = value;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: category,
-                      decoration: const InputDecoration(
-                        labelText: 'Categoria',
-                        border: OutlineInputBorder(),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: category,
+                        decoration: const InputDecoration(
+                          labelText: 'Categoria',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _categories
+                            .map(
+                              (category) => DropdownMenuItem(
+                                value: category,
+                                child: Text(category),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setDialogState(() {
+                            category = value;
+                            selectedStoreIds.clear();
+                          });
+                        },
                       ),
-                      items: _categories
-                          .map(
-                            (category) => DropdownMenuItem(
-                              value: category,
-                              child: Text(category),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() {
-                          category = value;
-                          selectedStoreIds.clear();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Negozi',
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    if (availableStores.isEmpty)
-                      const Text('Nessun negozio per questa categoria')
-                    else
-                      ...availableStores.map(
-                        (store) => CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(store.name),
-                          value: selectedStoreIds.contains(store.id),
-                          onChanged: (selected) {
-                            setDialogState(() {
-                              if (selected == true && store.id != null) {
-                                selectedStoreIds.add(store.id!);
-                              } else {
-                                selectedStoreIds.remove(store.id);
-                              }
-                            });
-                          },
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'Negozi',
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
                       ),
-                  ],
+                      const SizedBox(height: 4),
+                      if (availableStores.isEmpty)
+                        const Text('Nessun negozio per questa categoria')
+                      else
+                        ...availableStores.map(
+                          (store) => CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(store.name),
+                            value: selectedStoreIds.contains(store.id),
+                            onChanged: (selected) {
+                              setDialogState(() {
+                                if (selected == true && store.id != null) {
+                                  selectedStoreIds.add(store.id!);
+                                } else {
+                                  selectedStoreIds.remove(store.id);
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Annulla'),
+                  ),
+                  FilledButton.icon(
+                    key: const Key('saveManualEntryButton'),
+                    onPressed: () {
+                      final normalizedName = itemName.trim();
+                      if (normalizedName.isEmpty) {
+                        return;
+                      }
+                      Navigator.of(context).pop(
+                        ShoppingListEntry(
+                          name: normalizedName,
+                          category: category,
+                          storeIds: selectedStoreIds.toList(growable: false),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add_shopping_cart_outlined),
+                    label: const Text('Aggiungi'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Annulla'),
-                ),
-                FilledButton.icon(
-                  key: const Key('saveManualEntryButton'),
-                  onPressed: () {
-                    final normalizedName = itemName.trim();
-                    if (normalizedName.isEmpty) {
-                      return;
-                    }
-                    Navigator.of(context).pop(
-                      ShoppingListEntry(
-                        name: normalizedName,
-                        category: category,
-                        storeIds: selectedStoreIds.toList(growable: false),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.add_shopping_cart_outlined),
-                  label: const Text('Aggiungi'),
-                ),
-              ],
             );
           },
         );
@@ -456,37 +466,47 @@ class _ShoppingPageState extends State<ShoppingPage> {
     return showDialog<int>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Quantita comprata'),
-          content: TextField(
-            key: const Key('boughtQuantityField'),
-            autofocus: true,
-            decoration: InputDecoration(
-              labelText: 'Quantita ($unit)',
-              border: const OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              quantityText = value;
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annulla'),
-            ),
-            FilledButton(
-              key: const Key('confirmBoughtQuantityButton'),
-              onPressed: () {
-                final quantity = int.tryParse(quantityText);
+        return UnfocusOnTap(
+          child: AlertDialog(
+            title: const Text('Quantita comprata'),
+            content: TextField(
+              key: const Key('boughtQuantityField'),
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'Quantita ($unit)',
+                border: const OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              onChanged: (value) {
+                quantityText = value;
+              },
+              onSubmitted: (value) {
+                final quantity = int.tryParse(value);
                 if (quantity == null || quantity <= 0) {
                   return;
                 }
                 Navigator.of(context).pop(quantity);
               },
-              child: const Text('Conferma'),
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Annulla'),
+              ),
+              FilledButton(
+                key: const Key('confirmBoughtQuantityButton'),
+                onPressed: () {
+                  final quantity = int.tryParse(quantityText);
+                  if (quantity == null || quantity <= 0) {
+                    return;
+                  }
+                  Navigator.of(context).pop(quantity);
+                },
+                child: const Text('Conferma'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -497,70 +517,82 @@ class _ShoppingPageState extends State<ShoppingPage> {
     final groups = _groups;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Spesa')),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    key: const Key('addManualEntryButton'),
-                    onPressed: _openAddManualEntryDialog,
-                    icon: const Icon(Icons.add_shopping_cart_outlined),
-                    label: const Text('Item manuale'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    key: const Key('addStoreButton'),
-                    onPressed: _openAddStoreDialog,
-                    icon: const Icon(Icons.add_business_outlined),
-                    label: const Text('Negozio'),
-                  ),
-                ),
-              ],
+      appBar: AppBar(
+        title: const Text('Spesa'),
+        actions: [
+          if (widget.onSignOut != null)
+            IconButton(
+              tooltip: 'Esci',
+              onPressed: widget.onSignOut,
+              icon: const Icon(Icons.logout),
             ),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(
-                child: Padding(
+        ],
+      ),
+      body: SafeArea(
+        child: UnfocusOnTap(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      key: const Key('addManualEntryButton'),
+                      onPressed: _openAddManualEntryDialog,
+                      icon: const Icon(Icons.add_shopping_cart_outlined),
+                      label: const Text('Item manuale'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const Key('addStoreButton'),
+                      onPressed: _openAddStoreDialog,
+                      icon: const Icon(Icons.add_business_outlined),
+                      label: const Text('Negozio'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (_isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (groups.isEmpty)
+                const Padding(
                   padding: EdgeInsets.symmetric(vertical: 48),
-                  child: CircularProgressIndicator(),
-                ),
-              )
-            else if (groups.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: Text('Nessun item da comprare')),
-              )
-            else
-              ...groups.map(
-                (group) => Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    key: Key('shoppingGroup-${group.store.name}'),
-                    title: Text(group.store.name),
-                    subtitle: Text(
-                      group.store.id == null
-                          ? 'Categoria senza negozi'
-                          : group.store.category,
+                  child: Center(child: Text('Nessun item da comprare')),
+                )
+              else
+                ...groups.map(
+                  (group) => Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      key: Key('shoppingGroup-${group.store.name}'),
+                      title: Text(group.store.name),
+                      subtitle: Text(
+                        group.store.id == null
+                            ? 'Categoria senza negozi'
+                            : group.store.category,
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Chip(label: Text('${group.totalCount}')),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                      onTap: () => _openGroupPage(group),
                     ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Chip(label: Text('${group.totalCount}')),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                    onTap: () => _openGroupPage(group),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

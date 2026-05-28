@@ -5,9 +5,10 @@ import 'inventory_page.dart';
 import 'shopping_page.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({required this.inventoryStore, super.key});
+  const HomeShell({required this.inventoryStore, this.onSignOut, super.key});
 
   final InventoryStore inventoryStore;
+  final VoidCallback? onSignOut;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -20,8 +21,14 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _selectedIndex == 0
-          ? InventoryPage(inventoryStore: widget.inventoryStore)
-          : ShoppingPage(inventoryStore: widget.inventoryStore),
+          ? InventoryPage(
+              inventoryStore: widget.inventoryStore,
+              onSignOut: widget.onSignOut,
+            )
+          : ShoppingPage(
+              inventoryStore: widget.inventoryStore,
+              onSignOut: widget.onSignOut,
+            ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

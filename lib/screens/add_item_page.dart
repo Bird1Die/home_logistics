@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/home_store.dart';
 import '../models/inventory_item.dart';
+import '../widgets/unfocus_on_tap.dart';
 
 class AddItemPage extends StatefulWidget {
   const AddItemPage({
@@ -140,125 +141,130 @@ class _AddItemPageState extends State<AddItemPage> {
         ),
       ),
       body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            children: [
-              TextFormField(
-                key: const Key('itemNameField'),
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
+        child: UnfocusOnTap(
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              children: [
+                TextFormField(
+                  key: const Key('itemNameField'),
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.sentences,
+                  textInputAction: TextInputAction.next,
+                  validator: _requiredText,
                 ),
-                textInputAction: TextInputAction.next,
-                validator: _requiredText,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('itemBrandField'),
-                controller: _brandController,
-                decoration: const InputDecoration(
-                  labelText: 'Marca',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const Key('itemBrandField'),
+                  controller: _brandController,
+                  decoration: const InputDecoration(
+                    labelText: 'Marca',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
                 ),
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  border: OutlineInputBorder(),
-                ),
-                items: availableCategories
-                    .map(
-                      (category) => DropdownMenuItem(
-                        value: category,
-                        child: Text(category),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _category,
+                  decoration: const InputDecoration(
+                    labelText: 'Categoria',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: availableCategories
+                      .map(
+                        (category) => DropdownMenuItem(
+                          value: category,
+                          child: Text(category),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
 
-                  setState(() {
-                    _category = value;
-                    _preferredStoreId = null;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<int?>(
-                initialValue: _preferredStoreId,
-                decoration: const InputDecoration(
-                  labelText: 'Negozio preferito',
-                  border: OutlineInputBorder(),
+                    setState(() {
+                      _category = value;
+                      _preferredStoreId = null;
+                    });
+                  },
                 ),
-                items: [
-                  const DropdownMenuItem<int?>(
-                    value: null,
-                    child: Text('Nessun negozio specifico'),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int?>(
+                  initialValue: _preferredStoreId,
+                  decoration: const InputDecoration(
+                    labelText: 'Negozio preferito',
+                    border: OutlineInputBorder(),
                   ),
-                  ...availableStores.map(
-                    (store) => DropdownMenuItem<int?>(
-                      value: store.id,
-                      child: Text(store.name),
+                  items: [
+                    const DropdownMenuItem<int?>(
+                      value: null,
+                      child: Text('Nessun negozio specifico'),
                     ),
-                  ),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _preferredStoreId = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      key: const Key('itemQuantityField'),
-                      controller: _quantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Quantita',
-                        border: OutlineInputBorder(),
+                    ...availableStores.map(
+                      (store) => DropdownMenuItem<int?>(
+                        value: store.id,
+                        child: Text(store.name),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: _requiredNumber,
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      key: const Key('itemMinimumQuantityField'),
-                      controller: _minimumQuantityController,
-                      decoration: const InputDecoration(
-                        labelText: 'Soglia minima',
-                        border: OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: _requiredNumber,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                key: const Key('itemUnitField'),
-                controller: _unitController,
-                decoration: const InputDecoration(
-                  labelText: 'Unita',
-                  border: OutlineInputBorder(),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _preferredStoreId = value;
+                    });
+                  },
                 ),
-                textInputAction: TextInputAction.done,
-                validator: _requiredText,
-                onFieldSubmitted: (_) => _saveItem(),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('itemQuantityField'),
+                        controller: _quantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Quantita',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: _requiredNumber,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        key: const Key('itemMinimumQuantityField'),
+                        controller: _minimumQuantityController,
+                        decoration: const InputDecoration(
+                          labelText: 'Soglia minima',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        validator: _requiredNumber,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  key: const Key('itemUnitField'),
+                  controller: _unitController,
+                  decoration: const InputDecoration(
+                    labelText: 'Unita',
+                    border: OutlineInputBorder(),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
+                  validator: _requiredText,
+                  onFieldSubmitted: (_) => _saveItem(),
+                ),
+              ],
+            ),
           ),
         ),
       ),

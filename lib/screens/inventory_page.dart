@@ -5,12 +5,18 @@ import '../models/inventory_item.dart';
 import '../storage/inventory_store.dart';
 import '../widgets/empty_inventory_message.dart';
 import '../widgets/inventory_item_card.dart';
+import '../widgets/unfocus_on_tap.dart';
 import 'add_item_page.dart';
 
 class InventoryPage extends StatefulWidget {
-  const InventoryPage({required this.inventoryStore, super.key});
+  const InventoryPage({
+    required this.inventoryStore,
+    this.onSignOut,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final VoidCallback? onSignOut;
 
   @override
   State<InventoryPage> createState() => _InventoryPageState();
@@ -125,10 +131,6 @@ class _InventoryPageState extends State<InventoryPage> {
       _selectedCategory = 'Tutto';
       _items.insert(0, savedItem);
     });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${savedItem.name} aggiunto all\'inventario')),
-    );
   }
 
   Future<void> _openEditItemPage(InventoryItem item) async {
@@ -160,10 +162,6 @@ class _InventoryPageState extends State<InventoryPage> {
         _items[itemIndex] = savedItem;
       }
     });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${savedItem.name} aggiornato')));
   }
 
   Future<void> _confirmDeleteItem(InventoryItem item) async {
@@ -204,10 +202,6 @@ class _InventoryPageState extends State<InventoryPage> {
     setState(() {
       _items.remove(item);
     });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${item.name} eliminato')));
   }
 
   Future<void> _openAddCategoryDialog() async {
@@ -216,33 +210,36 @@ class _InventoryPageState extends State<InventoryPage> {
     final category = await showDialog<String>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('Nuova categoria'),
-          content: TextField(
-            key: const Key('categoryNameField'),
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Nome categoria',
-              border: OutlineInputBorder(),
+        return UnfocusOnTap(
+          child: AlertDialog(
+            title: const Text('Nuova categoria'),
+            content: TextField(
+              key: const Key('categoryNameField'),
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Nome categoria',
+                border: OutlineInputBorder(),
+              ),
+              textInputAction: TextInputAction.done,
+              textCapitalization: TextCapitalization.words,
+              onChanged: (value) {
+                categoryName = value;
+              },
+              onSubmitted: (value) => Navigator.of(context).pop(value),
             ),
-            textInputAction: TextInputAction.done,
-            onChanged: (value) {
-              categoryName = value;
-            },
-            onSubmitted: (value) => Navigator.of(context).pop(value),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Annulla'),
+              ),
+              FilledButton.icon(
+                key: const Key('saveCategoryButton'),
+                onPressed: () => Navigator.of(context).pop(categoryName),
+                icon: const Icon(Icons.add),
+                label: const Text('Aggiungi'),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annulla'),
-            ),
-            FilledButton.icon(
-              key: const Key('saveCategoryButton'),
-              onPressed: () => Navigator.of(context).pop(categoryName),
-              icon: const Icon(Icons.add),
-              label: const Text('Aggiungi'),
-            ),
-          ],
         );
       },
     );
@@ -278,10 +275,6 @@ class _InventoryPageState extends State<InventoryPage> {
       _categories.add(normalizedCategory);
       _categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     });
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$normalizedCategory aggiunta')));
   }
 
   Future<void> _changeQuantity(InventoryItem item, int change) async {
@@ -308,97 +301,110 @@ class _InventoryPageState extends State<InventoryPage> {
     final visibleItems = _visibleItems;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Home Logistics')),
+      appBar: AppBar(
+        title: const Text('Home Logistics'),
+        actions: [
+          if (widget.onSignOut != null)
+            IconButton(
+              tooltip: 'Esci',
+              onPressed: widget.onSignOut,
+              icon: const Icon(Icons.logout),
+            ),
+        ],
+      ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-          children: [
-            Text(
-              'Inventario casa',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _restockCount == 0
-                  ? 'Hai tutto sopra la soglia minima.'
-                  : '$_restockCount prodotti sono da ricomprare.',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              key: const Key('inventorySearchField'),
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cerca per nome o marca',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: 'Cancella ricerca',
-                        onPressed: () {
-                          setState(() {
-                            _searchController.clear();
-                          });
-                        },
-                        icon: const Icon(Icons.close),
-                      ),
-                border: const OutlineInputBorder(),
+        child: UnfocusOnTap(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            children: [
+              Text(
+                'Inventario casa',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              textInputAction: TextInputAction.search,
-              onChanged: (_) {
-                setState(() {});
-              },
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  ..._filterOptions.map((category) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(category),
-                        selected: _selectedCategory == category,
-                        onSelected: (_) {
-                          setState(() {
-                            _selectedCategory = category;
-                          });
-                        },
-                      ),
-                    );
-                  }),
-                  ActionChip(
-                    key: const Key('addCategoryChip'),
-                    avatar: const Icon(Icons.add),
-                    label: const Text('Categoria'),
-                    onPressed: _openAddCategoryDialog,
+              const SizedBox(height: 6),
+              Text(
+                _restockCount == 0
+                    ? 'Hai tutto sopra la soglia minima.'
+                    : '$_restockCount prodotti sono da ricomprare.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 18),
+              TextField(
+                key: const Key('inventorySearchField'),
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Cerca per nome o marca',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Cancella ricerca',
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.close),
+                        ),
+                  border: const OutlineInputBorder(),
+                ),
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.search,
+                onChanged: (_) {
+                  setState(() {});
+                },
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ..._filterOptions.map((category) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(category),
+                          selected: _selectedCategory == category,
+                          onSelected: (_) {
+                            setState(() {
+                              _selectedCategory = category;
+                            });
+                          },
+                        ),
+                      );
+                    }),
+                    ActionChip(
+                      key: const Key('addCategoryChip'),
+                      avatar: const Icon(Icons.add),
+                      label: const Text('Categoria'),
+                      onPressed: _openAddCategoryDialog,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              if (_isLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 48),
+                    child: CircularProgressIndicator(),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: CircularProgressIndicator(),
+                )
+              else if (visibleItems.isEmpty)
+                const EmptyInventoryMessage()
+              else
+                ...visibleItems.map(
+                  (item) => InventoryItemCard(
+                    item: item,
+                    onDecrease: () => _changeQuantity(item, -1),
+                    onIncrease: () => _changeQuantity(item, 1),
+                    onEdit: () => _openEditItemPage(item),
+                  ),
                 ),
-              )
-            else if (visibleItems.isEmpty)
-              const EmptyInventoryMessage()
-            else
-              ...visibleItems.map(
-                (item) => InventoryItemCard(
-                  item: item,
-                  onDecrease: () => _changeQuantity(item, -1),
-                  onIncrease: () => _changeQuantity(item, 1),
-                  onEdit: () => _openEditItemPage(item),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(

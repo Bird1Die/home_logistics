@@ -36,7 +36,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(FilterChip, 'Farmaci'), findsOneWidget);
-    expect(find.text('Farmaci aggiunta'), findsOneWidget);
   });
 
   testWidgets('filters items that need restock', (tester) async {
@@ -228,7 +227,7 @@ void main() {
     await tester.tap(find.text('Inventario'));
     await tester.pumpAndSettle();
 
-    expect(find.text('3 conf.'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
   });
 
   testWidgets('searches items by name and brand only', (tester) async {
@@ -331,7 +330,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Aggiungi'));
+    await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('itemNameField')), 'Riso');
@@ -349,8 +348,7 @@ void main() {
 
     expect(find.text('Riso'), findsOneWidget);
     expect(find.text('Scotti'), findsOneWidget);
-    expect(find.text('4 conf.'), findsOneWidget);
-    expect(find.text('Riso aggiunto all\'inventario'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
   });
 
   testWidgets('updates item quantity from the list', (tester) async {
@@ -371,13 +369,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('3 conf.'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
 
     final firstDecreaseButton = find.byIcon(Icons.remove).first;
     await tester.tap(firstDecreaseButton);
     await tester.pump();
 
-    expect(find.text('2 conf.'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 
   testWidgets('edits an existing inventory item', (tester) async {
@@ -414,8 +412,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Barilla'), findsOneWidget);
-    expect(find.text('Soglia: 5 conf.'), findsOneWidget);
-    expect(find.text('Pasta aggiornato'), findsOneWidget);
   });
 
   testWidgets('deletes an existing inventory item', (tester) async {
@@ -438,7 +434,9 @@ void main() {
 
     expect(find.text('Pasta'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.delete_outline).first);
+    await tester.tap(find.byIcon(Icons.edit_outlined).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.delete_outline));
     await tester.pumpAndSettle();
 
     expect(find.text('Elimina item'), findsOneWidget);
@@ -447,7 +445,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Pasta'), findsNothing);
-    expect(find.text('Pasta eliminato'), findsOneWidget);
     expect(find.text('Nessun item in questa categoria'), findsOneWidget);
   });
 }
