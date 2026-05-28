@@ -87,6 +87,50 @@ class InMemoryInventoryStore implements InventoryStore {
   }
 
   @override
+  Future<void> updateCategory(String oldCategory, String newCategory) async {
+    final normalizedCategory = newCategory.trim();
+    if (normalizedCategory.isEmpty) {
+      return;
+    }
+
+    final categoryIndex = _categories.indexWhere(
+      (category) => category.toLowerCase() == oldCategory.toLowerCase(),
+    );
+    if (categoryIndex != -1) {
+      _categories[categoryIndex] = normalizedCategory;
+    }
+
+    for (var index = 0; index < _items.length; index++) {
+      final item = _items[index];
+      if (item.category == oldCategory) {
+        _items[index] = item.copyWith(category: normalizedCategory);
+      }
+    }
+
+    for (var index = 0; index < _stores.length; index++) {
+      final store = _stores[index];
+      if (store.category == oldCategory) {
+        _stores[index] = store.copyWith(category: normalizedCategory);
+      }
+    }
+
+    for (var index = 0; index < _shoppingEntries.length; index++) {
+      final entry = _shoppingEntries[index];
+      if (entry.category == oldCategory) {
+        _shoppingEntries[index] = entry.copyWith(category: normalizedCategory);
+      }
+    }
+  }
+
+  @override
+  Future<void> deleteCategory(String category) async {
+    _categories.removeWhere(
+      (existingCategory) =>
+          existingCategory.toLowerCase() == category.toLowerCase(),
+    );
+  }
+
+  @override
   Future<HomeStore> addStore(HomeStore store) async {
     final existingStore = _stores.where(
       (existingStore) =>
@@ -101,6 +145,45 @@ class InMemoryInventoryStore implements InventoryStore {
     _nextStoreId++;
     _stores.add(savedStore);
     return savedStore;
+  }
+
+  @override
+  Future<void> updateStore(HomeStore store) async {
+    final index = _stores.indexWhere(
+      (existingStore) => existingStore.id == store.id,
+    );
+    if (index == -1) {
+      return;
+    }
+
+    _stores[index] = store;
+  }
+
+  @override
+  Future<void> deleteStore(HomeStore store) async {
+    final storeId = store.id;
+    _stores.removeWhere((existingStore) => existingStore.id == storeId);
+    if (storeId == null) {
+      return;
+    }
+
+    for (var index = 0; index < _items.length; index++) {
+      final item = _items[index];
+      if (item.preferredStoreId == storeId) {
+        _items[index] = item.copyWith(clearPreferredStoreId: true);
+      }
+    }
+
+    for (var index = 0; index < _shoppingEntries.length; index++) {
+      final entry = _shoppingEntries[index];
+      if (entry.storeIds.contains(storeId)) {
+        _shoppingEntries[index] = entry.copyWith(
+          storeIds: entry.storeIds
+              .where((entryStoreId) => entryStoreId != storeId)
+              .toList(growable: false),
+        );
+      }
+    }
   }
 
   @override

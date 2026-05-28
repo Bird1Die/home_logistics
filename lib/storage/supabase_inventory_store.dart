@@ -10,6 +10,15 @@ class SupabaseInventoryStore implements InventoryStore {
 
   final SupabaseClient _client;
 
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AuthException('Sessione scaduta. Accedi di nuovo.');
+    }
+
+    return userId;
+  }
+
   @override
   Future<List<InventoryItem>> loadItems() async {
     final rows = await _client
@@ -62,16 +71,59 @@ class SupabaseInventoryStore implements InventoryStore {
 
   @override
   Future<void> addCategory(String category) async {
+    final userId = _userId;
+
     await _client.from('categories').upsert({
+      'user_id': userId,
       'name': category,
     }, onConflict: 'user_id,name');
   }
 
   @override
+  Future<void> updateCategory(String oldCategory, String newCategory) async {
+    final userId = _userId;
+
+    await _client
+        .from('categories')
+        .update({'name': newCategory})
+        .eq('user_id', userId)
+        .eq('name', oldCategory);
+    await _client
+        .from('inventory_items')
+        .update({'category': newCategory})
+        .eq('user_id', userId)
+        .eq('category', oldCategory);
+    await _client
+        .from('stores')
+        .update({'category': newCategory})
+        .eq('user_id', userId)
+        .eq('category', oldCategory);
+    await _client
+        .from('shopping_list_entries')
+        .update({'category': newCategory})
+        .eq('user_id', userId)
+        .eq('category', oldCategory);
+  }
+
+  @override
+  Future<void> deleteCategory(String category) async {
+    final userId = _userId;
+
+    await _client
+        .from('categories')
+        .delete()
+        .eq('user_id', userId)
+        .eq('name', category);
+  }
+
+  @override
   Future<HomeStore> addStore(HomeStore store) async {
+    final userId = _userId;
+
     final row = await _client
         .from('stores')
         .upsert({
+          'user_id': userId,
           'name': store.name,
           'category': store.category,
         }, onConflict: 'user_id,name,category')
@@ -82,12 +134,51 @@ class SupabaseInventoryStore implements InventoryStore {
   }
 
   @override
+  Future<void> updateStore(HomeStore store) async {
+    final userId = _userId;
+    final id = store.id;
+    if (id == null) {
+      return;
+    }
+
+    await _client
+        .from('stores')
+        .update({'name': store.name, 'category': store.category})
+        .eq('user_id', userId)
+        .eq('id', id);
+  }
+
+  @override
+  Future<void> deleteStore(HomeStore store) async {
+    final userId = _userId;
+    final id = store.id;
+    if (id == null) {
+      return;
+    }
+
+    await _client
+        .from('inventory_items')
+        .update({'preferred_store_id': null})
+        .eq('user_id', userId)
+        .eq('preferred_store_id', id);
+    await _client
+        .from('shopping_entry_stores')
+        .delete()
+        .eq('user_id', userId)
+        .eq('store_id', id);
+    await _client.from('stores').delete().eq('user_id', userId).eq('id', id);
+  }
+
+  @override
   Future<ShoppingListEntry> addShoppingListEntry(
     ShoppingListEntry entry,
   ) async {
+    final userId = _userId;
+
     final row = await _client
         .from('shopping_list_entries')
         .insert({
+          'user_id': userId,
           'name': entry.name,
           'category': entry.category,
           'is_completed': entry.isCompleted,
@@ -98,6 +189,7 @@ class SupabaseInventoryStore implements InventoryStore {
 
     for (final storeId in entry.storeIds) {
       await _client.from('shopping_entry_stores').insert({
+        'user_id': userId,
         'entry_id': entryId,
         'store_id': storeId,
       });
@@ -108,9 +200,12 @@ class SupabaseInventoryStore implements InventoryStore {
 
   @override
   Future<InventoryItem> addItem(InventoryItem item) async {
+    final userId = _userId;
+
     final row = await _client
         .from('inventory_items')
         .insert({
+          'user_id': userId,
           'name': item.name,
           'brand': item.brand,
           'category': item.category,

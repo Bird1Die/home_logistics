@@ -164,6 +164,47 @@ class SqliteInventoryStore implements InventoryStore {
   }
 
   @override
+  Future<void> updateCategory(String oldCategory, String newCategory) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.update(
+        'categories',
+        {'name': newCategory},
+        where: 'name = ? COLLATE NOCASE',
+        whereArgs: [oldCategory],
+      );
+      await txn.update(
+        'inventory_items',
+        {'category': newCategory},
+        where: 'category = ? COLLATE NOCASE',
+        whereArgs: [oldCategory],
+      );
+      await txn.update(
+        'stores',
+        {'category': newCategory},
+        where: 'category = ? COLLATE NOCASE',
+        whereArgs: [oldCategory],
+      );
+      await txn.update(
+        'shopping_list_entries',
+        {'category': newCategory},
+        where: 'category = ? COLLATE NOCASE',
+        whereArgs: [oldCategory],
+      );
+    });
+  }
+
+  @override
+  Future<void> deleteCategory(String category) async {
+    final db = await _db;
+    await db.delete(
+      'categories',
+      where: 'name = ? COLLATE NOCASE',
+      whereArgs: [category],
+    );
+  }
+
+  @override
   Future<HomeStore> addStore(HomeStore store) async {
     final db = await _db;
     final id = await db.insert(
@@ -183,6 +224,46 @@ class SqliteInventoryStore implements InventoryStore {
     }
 
     return store.copyWith(id: id);
+  }
+
+  @override
+  Future<void> updateStore(HomeStore store) async {
+    final id = store.id;
+    if (id == null) {
+      return;
+    }
+
+    final db = await _db;
+    await db.update(
+      'stores',
+      store.toMap()..remove('id'),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> deleteStore(HomeStore store) async {
+    final id = store.id;
+    if (id == null) {
+      return;
+    }
+
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.update(
+        'inventory_items',
+        {'preferred_store_id': null},
+        where: 'preferred_store_id = ?',
+        whereArgs: [id],
+      );
+      await txn.delete(
+        'shopping_entry_stores',
+        where: 'store_id = ?',
+        whereArgs: [id],
+      );
+      await txn.delete('stores', where: 'id = ?', whereArgs: [id]);
+    });
   }
 
   @override

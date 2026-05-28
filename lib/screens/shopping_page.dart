@@ -4,13 +4,22 @@ import '../models/home_store.dart';
 import '../models/inventory_item.dart';
 import '../models/shopping_list_entry.dart';
 import '../storage/inventory_store.dart';
+import '../widgets/account_drawer.dart';
 import '../widgets/unfocus_on_tap.dart';
 import 'add_item_page.dart';
 
 class ShoppingPage extends StatefulWidget {
-  const ShoppingPage({required this.inventoryStore, this.onSignOut, super.key});
+  const ShoppingPage({
+    required this.inventoryStore,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    this.onSignOut,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onSignOut;
 
   @override
@@ -517,15 +526,27 @@ class _ShoppingPageState extends State<ShoppingPage> {
     final groups = _groups;
 
     return Scaffold(
+      endDrawer: AccountDrawer(
+        inventoryStore: widget.inventoryStore,
+        themeMode: widget.themeMode,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onDataChanged: () {
+          _loadData();
+        },
+        onSignOut: widget.onSignOut,
+      ),
       appBar: AppBar(
         title: const Text('Spesa'),
         actions: [
-          if (widget.onSignOut != null)
-            IconButton(
-              tooltip: 'Esci',
-              onPressed: widget.onSignOut,
-              icon: const Icon(Icons.logout),
-            ),
+          Builder(
+            builder: (context) {
+              return IconButton(
+                tooltip: 'Account',
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+                icon: const Icon(Icons.account_circle_outlined),
+              );
+            },
+          ),
         ],
       ),
       body: SafeArea(

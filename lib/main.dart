@@ -40,7 +40,7 @@ InventoryStore _createLocalStore(bool hasSupabaseConfig) {
   return kIsWeb ? InMemoryInventoryStore() : SqliteInventoryStore();
 }
 
-class HomeLogisticsApp extends StatelessWidget {
+class HomeLogisticsApp extends StatefulWidget {
   const HomeLogisticsApp({
     required this.inventoryStore,
     this.useSupabase = false,
@@ -51,25 +51,61 @@ class HomeLogisticsApp extends StatelessWidget {
   final bool useSupabase;
 
   @override
+  State<HomeLogisticsApp> createState() => _HomeLogisticsAppState();
+}
+
+class _HomeLogisticsAppState extends State<HomeLogisticsApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _setThemeMode(ThemeMode themeMode) {
+    setState(() {
+      _themeMode = themeMode;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Home Logistics',
       debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
         useMaterial3: true,
       ),
-      home: useSupabase
-          ? SupabaseAuthGate(inventoryStore: inventoryStore)
-          : HomeShell(inventoryStore: inventoryStore),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF64B5F6),
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: widget.useSupabase
+          ? SupabaseAuthGate(
+              inventoryStore: widget.inventoryStore,
+              themeMode: _themeMode,
+              onThemeModeChanged: _setThemeMode,
+            )
+          : HomeShell(
+              inventoryStore: widget.inventoryStore,
+              themeMode: _themeMode,
+              onThemeModeChanged: _setThemeMode,
+            ),
     );
   }
 }
 
 class SupabaseAuthGate extends StatefulWidget {
-  const SupabaseAuthGate({required this.inventoryStore, super.key});
+  const SupabaseAuthGate({
+    required this.inventoryStore,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<SupabaseAuthGate> createState() => _SupabaseAuthGateState();
@@ -104,6 +140,8 @@ class _SupabaseAuthGateState extends State<SupabaseAuthGate> {
       key: ValueKey(session.user.id),
       inventoryStore: widget.inventoryStore,
       onSignOut: _signOut,
+      themeMode: widget.themeMode,
+      onThemeModeChanged: widget.onThemeModeChanged,
     );
   }
 }

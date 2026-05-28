@@ -5,9 +5,17 @@ import 'inventory_page.dart';
 import 'shopping_page.dart';
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({required this.inventoryStore, this.onSignOut, super.key});
+  const HomeShell({
+    required this.inventoryStore,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    this.onSignOut,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onSignOut;
 
   @override
@@ -24,10 +32,14 @@ class _HomeShellState extends State<HomeShell> {
           ? InventoryPage(
               inventoryStore: widget.inventoryStore,
               onSignOut: widget.onSignOut,
+              themeMode: widget.themeMode,
+              onThemeModeChanged: widget.onThemeModeChanged,
             )
           : ShoppingPage(
               inventoryStore: widget.inventoryStore,
               onSignOut: widget.onSignOut,
+              themeMode: widget.themeMode,
+              onThemeModeChanged: widget.onThemeModeChanged,
             ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,

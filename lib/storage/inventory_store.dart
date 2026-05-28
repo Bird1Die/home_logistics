@@ -8,7 +8,11 @@ abstract class InventoryStore {
   Future<List<HomeStore>> loadStores();
   Future<List<ShoppingListEntry>> loadShoppingListEntries();
   Future<void> addCategory(String category);
+  Future<void> updateCategory(String oldCategory, String newCategory);
+  Future<void> deleteCategory(String category);
   Future<HomeStore> addStore(HomeStore store);
+  Future<void> updateStore(HomeStore store);
+  Future<void> deleteStore(HomeStore store);
   Future<ShoppingListEntry> addShoppingListEntry(ShoppingListEntry entry);
   Future<InventoryItem> addItem(InventoryItem item);
   Future<void> updateItem(InventoryItem item);
