@@ -2,6 +2,8 @@ import 'package:path/path.dart' as path;
 import 'package:sqflite/sqflite.dart';
 
 import '../models/home_store.dart';
+import '../models/home_task.dart';
+import '../models/home_task_completion.dart';
 import '../models/inventory_item.dart';
 import '../models/shopping_list_entry.dart';
 import 'inventory_store.dart';
@@ -18,7 +20,7 @@ class SqliteInventoryStore implements InventoryStore {
     final databasePath = await getDatabasesPath();
     final db = await openDatabase(
       path.join(databasePath, 'home_logistics.db'),
-      version: 3,
+      version: 4,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE inventory_items (
@@ -35,6 +37,7 @@ class SqliteInventoryStore implements InventoryStore {
         await _createCategoriesTable(db);
         await _createStoresTable(db);
         await _createShoppingTables(db);
+        await _createTaskTables(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -45,6 +48,9 @@ class SqliteInventoryStore implements InventoryStore {
           await _addPreferredStoreColumn(db);
           await _createStoresTable(db);
           await _createShoppingTables(db);
+        }
+        if (oldVersion < 4) {
+          await _createTaskTables(db);
         }
       },
     );
@@ -87,6 +93,28 @@ class SqliteInventoryStore implements InventoryStore {
         entry_id INTEGER NOT NULL,
         store_id INTEGER NOT NULL,
         PRIMARY KEY(entry_id, store_id)
+      )
+    ''');
+  }
+
+  Future<void> _createTaskTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        notes TEXT,
+        recurrence_days INTEGER,
+        next_due_date TEXT NOT NULL,
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS home_task_completions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        task_title TEXT NOT NULL,
+        completed_at TEXT NOT NULL
       )
     ''');
   }
@@ -339,5 +367,104 @@ class SqliteInventoryStore implements InventoryStore {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  @override
+  Future<List<HomeTask>> loadTasks() async {
+    final db = await _db;
+    final rows = await db.query(
+      'home_tasks',
+      where: 'is_active = ? AND is_completed = ?',
+      whereArgs: [1, 0],
+      orderBy: 'next_due_date ASC',
+    );
+    return rows.map(HomeTask.fromMap).toList(growable: false);
+  }
+
+  @override
+  Future<List<HomeTaskCompletion>> loadTaskCompletions() async {
+    final db = await _db;
+    final rows = await db.query(
+      'home_task_completions',
+      orderBy: 'completed_at DESC',
+    );
+    return rows.map(HomeTaskCompletion.fromMap).toList(growable: false);
+  }
+
+  @override
+  Future<HomeTask> addTask(HomeTask task) async {
+    final db = await _db;
+    final id = await db.insert('home_tasks', task.toMap()..remove('id'));
+    return task.copyWith(id: id);
+  }
+
+  @override
+  Future<void> updateTask(HomeTask task) async {
+    final id = task.id;
+    if (id == null) {
+      return;
+    }
+
+    final db = await _db;
+    await db.update(
+      'home_tasks',
+      task.toMap()..remove('id'),
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  @override
+  Future<void> deleteTask(HomeTask task) async {
+    final id = task.id;
+    if (id == null) {
+      return;
+    }
+
+    final db = await _db;
+    await db.delete('home_tasks', where: 'id = ?', whereArgs: [id]);
+  }
+
+  @override
+  Future<void> completeTask(HomeTask task) async {
+    final id = task.id;
+    if (id == null) {
+      return;
+    }
+
+    final now = DateTime.now();
+    final recurrenceDays = task.recurrenceDays;
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.insert('home_task_completions', {
+        'task_id': id,
+        'task_title': task.title,
+        'completed_at': now.toIso8601String(),
+      });
+
+      if (recurrenceDays == null) {
+        await txn.update(
+          'home_tasks',
+          {'is_completed': 1, 'is_active': 0},
+          where: 'id = ?',
+          whereArgs: [id],
+        );
+        return;
+      }
+
+      final today = DateTime(now.year, now.month, now.day);
+      await txn.update(
+        'home_tasks',
+        {
+          'next_due_date': today
+              .add(Duration(days: recurrenceDays))
+              .toIso8601String()
+              .split('T')
+              .first,
+        },
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   }
 }

@@ -101,6 +101,43 @@ void main() {
     expect(find.widgetWithText(FilterChip, 'Farmaci'), findsOneWidget);
   });
 
+  testWidgets('adds and completes a one-time task', (tester) async {
+    await pumpHomeLogistics(tester, InMemoryInventoryStore());
+
+    await tester.tap(find.byKey(const Key('tasksModuleCard')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nessuna attivita'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('addTaskButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('taskTitleField')),
+      'Pulire bagno',
+    );
+    await tester.enterText(
+      find.byKey(const Key('taskNotesField')),
+      'Usare anticalcare',
+    );
+    tester.testTextInput.hide();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('saveTaskButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Oggi'), findsOneWidget);
+    expect(find.text('Pulire bagno'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Completa'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nessuna attivita'), findsOneWidget);
+
+    await tester.tap(find.text('Fatte'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pulire bagno'), findsOneWidget);
+  });
+
   testWidgets('filters items that need restock', (tester) async {
     await pumpInventoryModule(
       tester,

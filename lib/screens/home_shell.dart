@@ -6,6 +6,8 @@ import 'inventory_page.dart';
 import 'manage_categories_page.dart';
 import 'manage_stores_page.dart';
 import 'shopping_page.dart';
+import 'task_history_page.dart';
+import 'tasks_page.dart';
 
 class HomeShell extends StatelessWidget {
   const HomeShell({
@@ -25,6 +27,19 @@ class HomeShell extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => InventoryModuleShell(
+          inventoryStore: inventoryStore,
+          themeMode: themeMode,
+          onThemeModeChanged: onThemeModeChanged,
+          onSignOut: onSignOut,
+        ),
+      ),
+    );
+  }
+
+  void _openTasksModule(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => TasksModuleShell(
           inventoryStore: inventoryStore,
           themeMode: themeMode,
           onThemeModeChanged: onThemeModeChanged,
@@ -74,8 +89,85 @@ class HomeShell extends StatelessWidget {
               icon: Icons.inventory_2_outlined,
               onTap: () => _openInventoryModule(context),
             ),
+            _HomeModuleCard(
+              key: const Key('tasksModuleCard'),
+              title: 'Attivita',
+              subtitle: 'Routine, manutenzioni e cose da fare',
+              icon: Icons.task_alt_outlined,
+              onTap: () => _openTasksModule(context),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class TasksModuleShell extends StatefulWidget {
+  const TasksModuleShell({
+    required this.inventoryStore,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    this.onSignOut,
+    super.key,
+  });
+
+  final InventoryStore inventoryStore;
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final VoidCallback? onSignOut;
+
+  @override
+  State<TasksModuleShell> createState() => _TasksModuleShellState();
+}
+
+class _TasksModuleShellState extends State<TasksModuleShell> {
+  int _selectedIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      endDrawer: AccountDrawer(
+        themeMode: widget.themeMode,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onSignOut: widget.onSignOut,
+      ),
+      appBar: AppBar(
+        title: Text(_selectedIndex == 0 ? 'Attivita' : 'Attivita fatte'),
+        actions: [
+          Builder(
+            builder: (context) {
+              return IconButton(
+                tooltip: 'Account',
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+                icon: const Icon(Icons.account_circle_outlined),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _selectedIndex == 0
+          ? TasksPage(inventoryStore: widget.inventoryStore)
+          : TaskHistoryPage(inventoryStore: widget.inventoryStore),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'Da fare',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history),
+            label: 'Fatte',
+          ),
+        ],
       ),
     );
   }

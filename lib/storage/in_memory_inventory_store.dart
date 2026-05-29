@@ -1,4 +1,6 @@
 import '../models/home_store.dart';
+import '../models/home_task.dart';
+import '../models/home_task_completion.dart';
 import '../models/inventory_item.dart';
 import '../models/shopping_list_entry.dart';
 import 'inventory_store.dart';
@@ -8,22 +10,32 @@ class InMemoryInventoryStore implements InventoryStore {
   final List<String> _categories;
   final List<HomeStore> _stores;
   final List<ShoppingListEntry> _shoppingEntries;
+  final List<HomeTask> _tasks;
+  final List<HomeTaskCompletion> _taskCompletions;
   int _nextItemId;
   int _nextStoreId;
   int _nextShoppingEntryId;
+  int _nextTaskId;
+  int _nextTaskCompletionId;
 
   InMemoryInventoryStore([
     List<InventoryItem>? items,
     List<String>? categories,
     List<HomeStore>? stores,
     List<ShoppingListEntry>? shoppingEntries,
+    List<HomeTask>? tasks,
+    List<HomeTaskCompletion>? taskCompletions,
   ]) : _items = List.of(items ?? const []),
        _categories = List.of(categories ?? const []),
        _stores = List.of(stores ?? const []),
        _shoppingEntries = List.of(shoppingEntries ?? const []),
+       _tasks = List.of(tasks ?? const []),
+       _taskCompletions = List.of(taskCompletions ?? const []),
        _nextItemId = _nextIdFromItems(items),
        _nextStoreId = _nextIdFromStores(stores),
-       _nextShoppingEntryId = _nextIdFromShoppingEntries(shoppingEntries);
+       _nextShoppingEntryId = _nextIdFromShoppingEntries(shoppingEntries),
+       _nextTaskId = _nextIdFromTasks(tasks),
+       _nextTaskCompletionId = _nextIdFromTaskCompletions(taskCompletions);
 
   static int _nextIdFromItems(List<InventoryItem>? items) {
     return ((items ?? const <InventoryItem>[])
@@ -42,6 +54,20 @@ class InMemoryInventoryStore implements InventoryStore {
   static int _nextIdFromShoppingEntries(List<ShoppingListEntry>? entries) {
     return ((entries ?? const <ShoppingListEntry>[])
             .map((entry) => entry.id ?? 0)
+            .fold<int>(0, (maxId, id) => id > maxId ? id : maxId)) +
+        1;
+  }
+
+  static int _nextIdFromTasks(List<HomeTask>? tasks) {
+    return ((tasks ?? const <HomeTask>[])
+            .map((task) => task.id ?? 0)
+            .fold<int>(0, (maxId, id) => id > maxId ? id : maxId)) +
+        1;
+  }
+
+  static int _nextIdFromTaskCompletions(List<HomeTaskCompletion>? completions) {
+    return ((completions ?? const <HomeTaskCompletion>[])
+            .map((completion) => completion.id ?? 0)
             .fold<int>(0, (maxId, id) => id > maxId ? id : maxId)) +
         1;
   }
@@ -231,5 +257,83 @@ class InMemoryInventoryStore implements InventoryStore {
     }
 
     _shoppingEntries[index] = entry.copyWith(isCompleted: true);
+  }
+
+  @override
+  Future<List<HomeTask>> loadTasks() async {
+    return _tasks
+        .where((task) => task.isActive && !task.isCompleted)
+        .toList(growable: false)
+      ..sort((a, b) => a.nextDueDate.compareTo(b.nextDueDate));
+  }
+
+  @override
+  Future<List<HomeTaskCompletion>> loadTaskCompletions() async {
+    return List.of(_taskCompletions)
+      ..sort((a, b) => b.completedAt.compareTo(a.completedAt));
+  }
+
+  @override
+  Future<HomeTask> addTask(HomeTask task) async {
+    final savedTask = task.copyWith(id: _nextTaskId);
+    _nextTaskId++;
+    _tasks.add(savedTask);
+    return savedTask;
+  }
+
+  @override
+  Future<void> updateTask(HomeTask task) async {
+    final index = _tasks.indexWhere(
+      (existingTask) => existingTask.id == task.id,
+    );
+    if (index == -1) {
+      return;
+    }
+
+    _tasks[index] = task;
+  }
+
+  @override
+  Future<void> deleteTask(HomeTask task) async {
+    _tasks.removeWhere((existingTask) => existingTask.id == task.id);
+  }
+
+  @override
+  Future<void> completeTask(HomeTask task) async {
+    final id = task.id;
+    if (id == null) {
+      return;
+    }
+
+    _taskCompletions.insert(
+      0,
+      HomeTaskCompletion(
+        id: _nextTaskCompletionId,
+        taskId: id,
+        taskTitle: task.title,
+        completedAt: DateTime.now(),
+      ),
+    );
+    _nextTaskCompletionId++;
+
+    final index = _tasks.indexWhere((existingTask) => existingTask.id == id);
+    if (index == -1) {
+      return;
+    }
+
+    final recurrenceDays = task.recurrenceDays;
+    if (recurrenceDays == null) {
+      _tasks[index] = task.copyWith(isCompleted: true, isActive: false);
+      return;
+    }
+
+    final today = DateTime.now();
+    _tasks[index] = task.copyWith(
+      nextDueDate: DateTime(
+        today.year,
+        today.month,
+        today.day,
+      ).add(Duration(days: recurrenceDays)),
+    );
   }
 }

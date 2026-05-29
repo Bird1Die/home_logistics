@@ -1,5 +1,7 @@
 import '../models/inventory_item.dart';
 import '../models/home_store.dart';
+import '../models/home_task.dart';
+import '../models/home_task_completion.dart';
 import '../models/shopping_list_entry.dart';
 
 abstract class InventoryStore {
@@ -18,4 +20,10 @@ abstract class InventoryStore {
   Future<void> updateItem(InventoryItem item);
   Future<void> deleteItem(InventoryItem item);
   Future<void> deleteShoppingListEntry(ShoppingListEntry entry);
+  Future<List<HomeTask>> loadTasks();
+  Future<List<HomeTaskCompletion>> loadTaskCompletions();
+  Future<HomeTask> addTask(HomeTask task);
+  Future<void> updateTask(HomeTask task);
+  Future<void> deleteTask(HomeTask task);
+  Future<void> completeTask(HomeTask task);
 }
