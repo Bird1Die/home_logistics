@@ -13,9 +13,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Inventario casa'), findsOneWidget);
+    expect(find.text('Inventario casa'), findsNothing);
     expect(find.text('Nessun item in questa categoria'), findsOneWidget);
     expect(find.widgetWithText(FilterChip, 'Da comprare'), findsOneWidget);
+    expect(find.byKey(const Key('restockCounterBadge')), findsOneWidget);
     expect(find.byTooltip('Account'), findsOneWidget);
   });
 

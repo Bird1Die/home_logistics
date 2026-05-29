@@ -257,97 +257,136 @@ class _InventoryPageState extends State<InventoryPage> {
         ],
       ),
       body: SafeArea(
-        child: UnfocusOnTap(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            children: [
-              Text(
-                'Inventario casa',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _restockCount == 0
-                    ? 'Hai tutto sopra la soglia minima.'
-                    : '$_restockCount prodotti sono da ricomprare.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 18),
-              TextField(
-                key: const Key('inventorySearchField'),
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Cerca per nome o marca',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Cancella ricerca',
-                          onPressed: () {
-                            setState(() {
-                              _searchController.clear();
-                            });
-                          },
-                          icon: const Icon(Icons.close),
-                        ),
-                  border: const OutlineInputBorder(),
-                ),
-                textCapitalization: TextCapitalization.words,
-                textInputAction: TextInputAction.search,
-                onChanged: (_) {
-                  setState(() {});
-                },
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ..._filterOptions.map((category) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(category),
-                          selected: _selectedCategory == category,
-                          onSelected: (_) {
-                            setState(() {
-                              _selectedCategory = category;
-                            });
-                          },
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (_isLoading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 48),
-                    child: CircularProgressIndicator(),
+        child: Stack(
+          children: [
+            UnfocusOnTap(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                children: [
+                  TextField(
+                    key: const Key('inventorySearchField'),
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Cerca per nome o marca',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Cancella ricerca',
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                });
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                      border: const OutlineInputBorder(),
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.search,
+                    onChanged: (_) {
+                      setState(() {});
+                    },
                   ),
-                )
-              else if (visibleItems.isEmpty)
-                const EmptyInventoryMessage()
-              else
-                ...visibleItems.map(
-                  (item) => InventoryItemCard(
-                    item: item,
-                    onDecrease: () => _changeQuantity(item, -1),
-                    onIncrease: () => _changeQuantity(item, 1),
-                    onEdit: () => _openEditItemPage(item),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ..._filterOptions.map((category) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Text(category),
+                              selected: _selectedCategory == category,
+                              onSelected: (_) {
+                                setState(() {
+                                  _selectedCategory = category;
+                                });
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
+                  const SizedBox(height: 16),
+                  if (_isLoading)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (visibleItems.isEmpty)
+                    const EmptyInventoryMessage()
+                  else
+                    ...visibleItems.map(
+                      (item) => InventoryItemCard(
+                        item: item,
+                        onDecrease: () => _changeQuantity(item, -1),
+                        onIncrease: () => _changeQuantity(item, 1),
+                        onEdit: () => _openEditItemPage(item),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: _RestockCounterBadge(count: _restockCount),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _openAddItemPage,
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class _RestockCounterBadge extends StatelessWidget {
+  const _RestockCounterBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: count == 0
+          ? colorScheme.surfaceContainerHighest
+          : colorScheme.errorContainer,
+      borderRadius: BorderRadius.circular(28),
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.warning_amber_rounded,
+              color: count == 0
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onErrorContainer,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$count',
+              key: const Key('restockCounterBadge'),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: count == 0
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onErrorContainer,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
