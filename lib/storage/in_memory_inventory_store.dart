@@ -328,12 +328,19 @@ class InMemoryInventoryStore implements InventoryStore {
     }
 
     final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final baseDate = task.nextDueDate.isAfter(todayDate)
+        ? task.nextDueDate
+        : todayDate;
     _tasks[index] = task.copyWith(
-      nextDueDate: DateTime(
-        today.year,
-        today.month,
-        today.day,
-      ).add(Duration(days: recurrenceDays)),
+      nextDueDate: baseDate.add(Duration(days: recurrenceDays)),
+    );
+  }
+
+  @override
+  Future<void> deleteTaskCompletion(HomeTaskCompletion completion) async {
+    _taskCompletions.removeWhere(
+      (existingCompletion) => existingCompletion.id == completion.id,
     );
   }
 }

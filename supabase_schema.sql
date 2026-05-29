@@ -334,3 +334,9 @@ with check (
     where t.id = task_id and t.user_id = auth.uid()
   )
 );
+
+drop policy if exists "home_task_completions_delete_own" on public.home_task_completions;
+create policy "home_task_completions_delete_own"
+on public.home_task_completions for delete
+to authenticated
+using (auth.uid() = user_id);

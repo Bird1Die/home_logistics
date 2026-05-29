@@ -36,6 +36,34 @@ class _TaskHistoryPageState extends State<TaskHistoryPage> {
     });
   }
 
+  Future<void> _confirmDeleteCompletion(HomeTaskCompletion completion) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Elimina log'),
+        content: Text('Vuoi eliminare il log di ${completion.taskTitle}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton.tonalIcon(
+            key: const Key('confirmDeleteTaskCompletionButton'),
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Elimina'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true) {
+      return;
+    }
+
+    await widget.inventoryStore.deleteTaskCompletion(completion);
+    await _loadCompletions();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,6 +83,11 @@ class _TaskHistoryPageState extends State<TaskHistoryPage> {
                       leading: const Icon(Icons.check_circle_outline),
                       title: Text(completion.taskTitle),
                       subtitle: Text(_formatDateTime(completion.completedAt)),
+                      trailing: IconButton(
+                        tooltip: 'Elimina log',
+                        onPressed: () => _confirmDeleteCompletion(completion),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
                     ),
                   );
                 },

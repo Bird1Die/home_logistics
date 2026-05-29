@@ -453,10 +453,13 @@ class SqliteInventoryStore implements InventoryStore {
       }
 
       final today = DateTime(now.year, now.month, now.day);
+      final baseDate = task.nextDueDate.isAfter(today)
+          ? task.nextDueDate
+          : today;
       await txn.update(
         'home_tasks',
         {
-          'next_due_date': today
+          'next_due_date': baseDate
               .add(Duration(days: recurrenceDays))
               .toIso8601String()
               .split('T')
@@ -466,5 +469,16 @@ class SqliteInventoryStore implements InventoryStore {
         whereArgs: [id],
       );
     });
+  }
+
+  @override
+  Future<void> deleteTaskCompletion(HomeTaskCompletion completion) async {
+    final id = completion.id;
+    if (id == null) {
+      return;
+    }
+
+    final db = await _db;
+    await db.delete('home_task_completions', where: 'id = ?', whereArgs: [id]);
   }
 }

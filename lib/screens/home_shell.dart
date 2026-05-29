@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/home_task.dart';
+import '../models/inventory_item.dart';
 import '../storage/inventory_store.dart';
 import '../widgets/account_drawer.dart';
 import 'inventory_page.dart';
@@ -9,7 +11,7 @@ import 'shopping_page.dart';
 import 'task_history_page.dart';
 import 'tasks_page.dart';
 
-class HomeShell extends StatelessWidget {
+class HomeShell extends StatefulWidget {
   const HomeShell({
     required this.inventoryStore,
     required this.themeMode,
@@ -23,39 +25,93 @@ class HomeShell extends StatelessWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final VoidCallback? onSignOut;
 
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  final List<InventoryItem> _items = [];
+  final List<HomeTask> _tasks = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeCounters();
+  }
+
+  Future<void> _loadHomeCounters() async {
+    final items = await widget.inventoryStore.loadItems();
+    final tasks = await widget.inventoryStore.loadTasks();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _items
+        ..clear()
+        ..addAll(items);
+      _tasks
+        ..clear()
+        ..addAll(tasks);
+      _isLoading = false;
+    });
+  }
+
+  int get _inventoryWarningCount =>
+      _items.where((item) => item.needsRestock && item.quantity > 0).length;
+
+  int get _inventoryCriticalCount =>
+      _items.where((item) => item.quantity == 0).length;
+
+  int get _todayTaskCount {
+    final today = _today();
+    return _tasks.where((task) => _isSameDay(task.nextDueDate, today)).length;
+  }
+
+  int get _overdueTaskCount {
+    final today = _today();
+    return _tasks.where((task) => task.nextDueDate.isBefore(today)).length;
+  }
+
   void _openInventoryModule(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => InventoryModuleShell(
-          inventoryStore: inventoryStore,
-          themeMode: themeMode,
-          onThemeModeChanged: onThemeModeChanged,
-          onSignOut: onSignOut,
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => InventoryModuleShell(
+              inventoryStore: widget.inventoryStore,
+              themeMode: widget.themeMode,
+              onThemeModeChanged: widget.onThemeModeChanged,
+              onSignOut: widget.onSignOut,
+            ),
+          ),
+        )
+        .then((_) => _loadHomeCounters());
   }
 
   void _openTasksModule(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => TasksModuleShell(
-          inventoryStore: inventoryStore,
-          themeMode: themeMode,
-          onThemeModeChanged: onThemeModeChanged,
-          onSignOut: onSignOut,
-        ),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => TasksModuleShell(
+              inventoryStore: widget.inventoryStore,
+              themeMode: widget.themeMode,
+              onThemeModeChanged: widget.onThemeModeChanged,
+              onSignOut: widget.onSignOut,
+            ),
+          ),
+        )
+        .then((_) => _loadHomeCounters());
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       endDrawer: AccountDrawer(
-        themeMode: themeMode,
-        onThemeModeChanged: onThemeModeChanged,
-        onSignOut: onSignOut,
+        themeMode: widget.themeMode,
+        onThemeModeChanged: widget.onThemeModeChanged,
+        onSignOut: widget.onSignOut,
       ),
       appBar: AppBar(
         title: const Text('Home Logistics'),
@@ -88,6 +144,12 @@ class HomeShell extends StatelessWidget {
               subtitle: 'Prodotti, spesa, categorie e negozi',
               icon: Icons.inventory_2_outlined,
               onTap: () => _openInventoryModule(context),
+              trailingBadge: _isLoading
+                  ? null
+                  : _InventorySummaryBadge(
+                      warningCount: _inventoryWarningCount,
+                      criticalCount: _inventoryCriticalCount,
+                    ),
             ),
             _HomeModuleCard(
               key: const Key('tasksModuleCard'),
@@ -95,6 +157,12 @@ class HomeShell extends StatelessWidget {
               subtitle: 'Routine, manutenzioni e cose da fare',
               icon: Icons.task_alt_outlined,
               onTap: () => _openTasksModule(context),
+              trailingBadge: _isLoading
+                  ? null
+                  : _TaskSummaryBadge(
+                      todayCount: _todayTaskCount,
+                      overdueCount: _overdueTaskCount,
+                    ),
             ),
           ],
         ),
@@ -277,6 +345,7 @@ class _HomeModuleCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.onTap,
+    this.trailingBadge,
     super.key,
   });
 
@@ -284,6 +353,7 @@ class _HomeModuleCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
+  final Widget? trailingBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -321,11 +391,146 @@ class _HomeModuleCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  const Icon(Icons.chevron_right),
+                  if (trailingBadge != null) ...[
+                    const SizedBox(height: 12),
+                    trailingBadge!,
+                  ],
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _InventorySummaryBadge extends StatelessWidget {
+  const _InventorySummaryBadge({
+    required this.warningCount,
+    required this.criticalCount,
+  });
+
+  final int warningCount;
+  final int criticalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    if (warningCount == 0 && criticalCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (warningCount > 0)
+            _SummaryCounterSegment(
+              key: const Key('homeInventoryWarningCounterBadge'),
+              count: warningCount,
+              iconColor: Colors.amber.shade700,
+            ),
+          if (warningCount > 0 && criticalCount > 0) const SizedBox(width: 10),
+          if (criticalCount > 0)
+            _SummaryCounterSegment(
+              key: const Key('homeInventoryCriticalCounterBadge'),
+              count: criticalCount,
+              iconColor: Theme.of(context).colorScheme.error,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TaskSummaryBadge extends StatelessWidget {
+  const _TaskSummaryBadge({
+    required this.todayCount,
+    required this.overdueCount,
+  });
+
+  final int todayCount;
+  final int overdueCount;
+
+  @override
+  Widget build(BuildContext context) {
+    if (todayCount == 0 && overdueCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (todayCount > 0)
+            _SummaryCounterSegment(
+              key: const Key('homeTodayTaskCounterBadge'),
+              count: todayCount,
+              iconColor: Colors.amber.shade700,
+            ),
+          if (todayCount > 0 && overdueCount > 0) const SizedBox(width: 10),
+          if (overdueCount > 0)
+            _SummaryCounterSegment(
+              key: const Key('homeOverdueTaskCounterBadge'),
+              count: overdueCount,
+              iconColor: Theme.of(context).colorScheme.error,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryCounterSegment extends StatelessWidget {
+  const _SummaryCounterSegment({
+    required this.count,
+    required this.iconColor,
+    super.key,
+  });
+
+  final int count;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.warning_amber_rounded, size: 18, color: iconColor),
+        const SizedBox(width: 4),
+        Text(
+          '$count',
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
+    );
+  }
+}
+
+DateTime _today() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
+bool _isSameDay(DateTime firstDate, DateTime secondDate) {
+  return firstDate.year == secondDate.year &&
+      firstDate.month == secondDate.month &&
+      firstDate.day == secondDate.day;
 }

@@ -373,13 +373,29 @@ class SupabaseInventoryStore implements InventoryStore {
     }
 
     final today = DateTime(now.year, now.month, now.day);
+    final baseDate = task.nextDueDate.isAfter(today) ? task.nextDueDate : today;
     await _client
         .from('home_tasks')
         .update({
           'next_due_date': _dateToString(
-            today.add(Duration(days: recurrenceDays)),
+            baseDate.add(Duration(days: recurrenceDays)),
           ),
         })
+        .eq('user_id', userId)
+        .eq('id', id);
+  }
+
+  @override
+  Future<void> deleteTaskCompletion(HomeTaskCompletion completion) async {
+    final userId = _userId;
+    final id = completion.id;
+    if (id == null) {
+      return;
+    }
+
+    await _client
+        .from('home_task_completions')
+        .delete()
         .eq('user_id', userId)
         .eq('id', id);
   }

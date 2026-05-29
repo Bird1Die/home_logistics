@@ -26,4 +26,5 @@ abstract class InventoryStore {
   Future<void> updateTask(HomeTask task);
   Future<void> deleteTask(HomeTask task);
   Future<void> completeTask(HomeTask task);
+  Future<void> deleteTaskCompletion(HomeTaskCompletion completion);
 }

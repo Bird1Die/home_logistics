@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:home_logistics/main.dart';
 import 'package:home_logistics/models/home_store.dart';
 import 'package:home_logistics/models/inventory_item.dart';
+import 'package:home_logistics/models/home_task.dart';
 import 'package:home_logistics/storage/in_memory_inventory_store.dart';
 
 Future<void> pumpHomeLogistics(
@@ -35,6 +36,57 @@ void main() {
     expect(find.byKey(const Key('inventoryModuleCard')), findsOneWidget);
     expect(find.text('Inventario'), findsOneWidget);
     expect(find.byTooltip('Account'), findsOneWidget);
+  });
+
+  testWidgets('shows inventory and task counters on the home cards', (
+    tester,
+  ) async {
+    await pumpHomeLogistics(
+      tester,
+      InMemoryInventoryStore(
+        [
+          InventoryItem(
+            id: 1,
+            name: 'Pasta',
+            category: 'Cibo',
+            quantity: 1,
+            minimumQuantity: 2,
+          ),
+          InventoryItem(
+            id: 2,
+            name: 'Latte',
+            category: 'Cibo',
+            quantity: 0,
+            minimumQuantity: 1,
+          ),
+        ],
+        null,
+        null,
+        null,
+        [
+          HomeTask(
+            id: 1,
+            title: 'Pulire bagno',
+            nextDueDate: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+          HomeTask(id: 2, title: 'Lavastoviglie', nextDueDate: DateTime.now()),
+        ],
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('homeInventoryWarningCounterBadge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('homeInventoryCriticalCounterBadge')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('homeTodayTaskCounterBadge')), findsOneWidget);
+    expect(
+      find.byKey(const Key('homeOverdueTaskCounterBadge')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows warning and critical restock counters', (tester) async {
@@ -126,16 +178,107 @@ void main() {
 
     expect(find.text('Oggi'), findsOneWidget);
     expect(find.text('Pulire bagno'), findsOneWidget);
+    expect(find.byKey(const Key('todayTaskCounterBadge')), findsOneWidget);
+    expect(find.byKey(const Key('overdueTaskCounterBadge')), findsNothing);
 
     await tester.tap(find.byTooltip('Completa'));
     await tester.pumpAndSettle();
 
     expect(find.text('Nessuna attivita'), findsOneWidget);
+    expect(find.byKey(const Key('todayTaskCounterBadge')), findsNothing);
+    expect(find.byKey(const Key('overdueTaskCounterBadge')), findsNothing);
 
     await tester.tap(find.text('Fatte'));
     await tester.pumpAndSettle();
 
     expect(find.text('Pulire bagno'), findsOneWidget);
+  });
+
+  testWidgets(
+    'completing a recurring task advances from the current due date',
+    (tester) async {
+      await pumpHomeLogistics(
+        tester,
+        InMemoryInventoryStore(null, null, null, null, [
+          HomeTask(
+            id: 1,
+            title: 'Cambiare coperte',
+            recurrenceDays: 14,
+            nextDueDate: DateTime(2026, 5, 29),
+          ),
+        ]),
+      );
+
+      await tester.tap(find.byKey(const Key('tasksModuleCard')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('29/05/2026'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Completa'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('12/06/2026'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Completa'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('26/06/2026'), findsOneWidget);
+    },
+  );
+
+  testWidgets('shows separate overdue and today task counters', (tester) async {
+    await pumpHomeLogistics(
+      tester,
+      InMemoryInventoryStore(null, null, null, null, [
+        HomeTask(
+          id: 1,
+          title: 'Pulire bagno',
+          nextDueDate: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+        HomeTask(id: 2, title: 'Lavastoviglie', nextDueDate: DateTime.now()),
+      ]),
+    );
+
+    await tester.tap(find.byKey(const Key('tasksModuleCard')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('todayTaskCounterBadge')), findsOneWidget);
+    expect(find.byKey(const Key('overdueTaskCounterBadge')), findsOneWidget);
+  });
+
+  testWidgets('deletes a task completion log', (tester) async {
+    await pumpHomeLogistics(
+      tester,
+      InMemoryInventoryStore(null, null, null, null, null, const []),
+    );
+
+    await tester.tap(find.byKey(const Key('tasksModuleCard')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('addTaskButton')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('taskTitleField')),
+      'Lavatrice',
+    );
+    tester.testTextInput.hide();
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('saveTaskButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Completa'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fatte'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lavatrice'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Elimina log'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('confirmDeleteTaskCompletionButton')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nessuna attivita completata'), findsOneWidget);
   });
 
   testWidgets('filters items that need restock', (tester) async {
