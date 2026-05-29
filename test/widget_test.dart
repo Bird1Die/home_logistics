@@ -16,8 +16,53 @@ void main() {
     expect(find.text('Inventario casa'), findsNothing);
     expect(find.text('Nessun item in questa categoria'), findsOneWidget);
     expect(find.widgetWithText(FilterChip, 'Da comprare'), findsOneWidget);
-    expect(find.byKey(const Key('restockCounterBadge')), findsOneWidget);
+    expect(find.byKey(const Key('warningRestockCounterBadge')), findsNothing);
+    expect(find.byKey(const Key('criticalRestockCounterBadge')), findsNothing);
     expect(find.byTooltip('Account'), findsOneWidget);
+  });
+
+  testWidgets('shows warning and critical restock counters', (tester) async {
+    await tester.pumpWidget(
+      HomeLogisticsApp(
+        inventoryStore: InMemoryInventoryStore([
+          InventoryItem(
+            id: 1,
+            name: 'Pasta',
+            category: 'Cibo',
+            quantity: 1,
+            minimumQuantity: 2,
+          ),
+          InventoryItem(
+            id: 2,
+            name: 'Latte',
+            category: 'Cibo',
+            quantity: 0,
+            minimumQuantity: 1,
+          ),
+        ]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('warningRestockCounterBadge')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('warningRestockCounterBadge')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('criticalRestockCounterBadge')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('criticalRestockCounterBadge')),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('adds a custom category from the account area', (tester) async {

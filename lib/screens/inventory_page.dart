@@ -105,7 +105,11 @@ class _InventoryPageState extends State<InventoryPage> {
         .toList(growable: false);
   }
 
-  int get _restockCount => _items.where((item) => item.needsRestock).length;
+  int get _warningRestockCount =>
+      _items.where((item) => item.needsRestock && item.quantity > 0).length;
+
+  int get _criticalRestockCount =>
+      _items.where((item) => item.quantity == 0).length;
 
   Future<void> _openAddItemPage() async {
     if (_categories.isEmpty) {
@@ -335,7 +339,10 @@ class _InventoryPageState extends State<InventoryPage> {
             Positioned(
               left: 16,
               bottom: 16,
-              child: _RestockCounterBadge(count: _restockCount),
+              child: _RestockCounterBadge(
+                warningCount: _warningRestockCount,
+                criticalCount: _criticalRestockCount,
+              ),
             ),
           ],
         ),
@@ -349,45 +356,76 @@ class _InventoryPageState extends State<InventoryPage> {
 }
 
 class _RestockCounterBadge extends StatelessWidget {
-  const _RestockCounterBadge({required this.count});
+  const _RestockCounterBadge({
+    required this.warningCount,
+    required this.criticalCount,
+  });
 
-  final int count;
+  final int warningCount;
+  final int criticalCount;
 
   @override
   Widget build(BuildContext context) {
+    if (warningCount == 0 && criticalCount == 0) {
+      return const SizedBox.shrink();
+    }
+
     final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: count == 0
-          ? colorScheme.surfaceContainerHighest
-          : colorScheme.errorContainer,
+      color: colorScheme.surface,
       borderRadius: BorderRadius.circular(28),
       elevation: 3,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.warning_amber_rounded,
-              color: count == 0
-                  ? colorScheme.onSurfaceVariant
-                  : colorScheme.onErrorContainer,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              '$count',
-              key: const Key('restockCounterBadge'),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: count == 0
-                    ? colorScheme.onSurfaceVariant
-                    : colorScheme.onErrorContainer,
-                fontWeight: FontWeight.w800,
+            if (warningCount > 0)
+              _RestockCounterSegment(
+                key: const Key('warningRestockCounterBadge'),
+                count: warningCount,
+                iconColor: Colors.amber.shade700,
               ),
-            ),
+            if (warningCount > 0 && criticalCount > 0)
+              const SizedBox(width: 12),
+            if (criticalCount > 0)
+              _RestockCounterSegment(
+                key: const Key('criticalRestockCounterBadge'),
+                count: criticalCount,
+                iconColor: colorScheme.error,
+              ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RestockCounterSegment extends StatelessWidget {
+  const _RestockCounterSegment({
+    required this.count,
+    required this.iconColor,
+    super.key,
+  });
+
+  final int count;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.warning_amber_rounded, color: iconColor),
+        const SizedBox(width: 6),
+        Text(
+          '$count',
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+      ],
     );
   }
 }

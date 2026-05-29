@@ -19,6 +19,9 @@ class InventoryItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final restockIconColor = item.quantity == 0
+        ? colorScheme.error
+        : Colors.amber.shade700;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
@@ -34,7 +37,7 @@ class InventoryItemCard extends StatelessWidget {
                 child: Icon(
                   Icons.warning_rounded,
                   size: 18,
-                  color: colorScheme.error,
+                  color: restockIconColor,
                 ),
               ),
             // Product info (left side, expandable)
