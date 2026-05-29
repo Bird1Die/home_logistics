@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/home_task.dart';
 import '../storage/inventory_store.dart';
 import 'add_task_page.dart';
+import 'task_details_page.dart';
 
 class TasksPage extends StatefulWidget {
   const TasksPage({required this.inventoryStore, super.key});
@@ -104,6 +105,16 @@ class _TasksPageState extends State<TasksPage> {
     await _loadTasks();
   }
 
+  Future<void> _openTaskDetailsPage(HomeTask task) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            TaskDetailsPage(inventoryStore: widget.inventoryStore, task: task),
+      ),
+    );
+    await _loadTasks();
+  }
+
   @override
   Widget build(BuildContext context) {
     final today = _today();
@@ -113,9 +124,13 @@ class _TasksPageState extends State<TasksPage> {
     final todayTasks = _tasks
         .where((task) => _isSameDay(task.nextDueDate, today))
         .toList(growable: false);
-    final upcomingTasks = _tasks
-        .where((task) => task.nextDueDate.isAfter(today))
-        .toList(growable: false);
+    final upcomingTasks =
+        _tasks
+            .where((task) => task.nextDueDate.isAfter(today))
+            .toList(growable: false)
+          ..sort((firstTask, secondTask) {
+            return firstTask.nextDueDate.compareTo(secondTask.nextDueDate);
+          });
 
     return Scaffold(
       body: SafeArea(
@@ -135,6 +150,7 @@ class _TasksPageState extends State<TasksPage> {
                           status: _TaskStatus.overdue,
                           onComplete: _completeTask,
                           onEdit: _openEditTaskPage,
+                          onOpenDetails: _openTaskDetailsPage,
                         ),
                       if (todayTasks.isNotEmpty)
                         _TaskSection(
@@ -143,6 +159,7 @@ class _TasksPageState extends State<TasksPage> {
                           status: _TaskStatus.today,
                           onComplete: _completeTask,
                           onEdit: _openEditTaskPage,
+                          onOpenDetails: _openTaskDetailsPage,
                         ),
                       if (upcomingTasks.isNotEmpty)
                         _TaskSection(
@@ -151,6 +168,7 @@ class _TasksPageState extends State<TasksPage> {
                           status: _TaskStatus.upcoming,
                           onComplete: _completeTask,
                           onEdit: _openEditTaskPage,
+                          onOpenDetails: _openTaskDetailsPage,
                         ),
                     ],
                   ),
@@ -181,6 +199,7 @@ class _TaskSection extends StatelessWidget {
     required this.status,
     required this.onComplete,
     required this.onEdit,
+    required this.onOpenDetails,
   });
 
   final String title;
@@ -188,6 +207,7 @@ class _TaskSection extends StatelessWidget {
   final _TaskStatus status;
   final ValueChanged<HomeTask> onComplete;
   final ValueChanged<HomeTask> onEdit;
+  final ValueChanged<HomeTask> onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -209,6 +229,7 @@ class _TaskSection extends StatelessWidget {
             status: status,
             onComplete: () => onComplete(task),
             onEdit: () => onEdit(task),
+            onOpenDetails: () => onOpenDetails(task),
           ),
         ),
         const SizedBox(height: 8),
@@ -223,12 +244,14 @@ class _TaskCard extends StatelessWidget {
     required this.status,
     required this.onComplete,
     required this.onEdit,
+    required this.onOpenDetails,
   });
 
   final HomeTask task;
   final _TaskStatus status;
   final VoidCallback onComplete;
   final VoidCallback onEdit;
+  final VoidCallback onOpenDetails;
 
   @override
   Widget build(BuildContext context) {
@@ -246,6 +269,7 @@ class _TaskCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
+        onTap: onOpenDetails,
         leading: Icon(iconData, color: iconColor),
         title: Text(task.title),
         subtitle: Text(

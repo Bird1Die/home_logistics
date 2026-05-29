@@ -244,6 +244,64 @@ void main() {
     expect(find.byKey(const Key('overdueTaskCounterBadge')), findsOneWidget);
   });
 
+  testWidgets('shows upcoming tasks in ascending due-date order', (
+    tester,
+  ) async {
+    await pumpHomeLogistics(
+      tester,
+      InMemoryInventoryStore(null, null, null, null, [
+        HomeTask(
+          id: 1,
+          title: 'Task lontana',
+          nextDueDate: DateTime.now().add(const Duration(days: 10)),
+        ),
+        HomeTask(
+          id: 2,
+          title: 'Task vicina',
+          nextDueDate: DateTime.now().add(const Duration(days: 3)),
+        ),
+      ]),
+    );
+
+    await tester.tap(find.byKey(const Key('tasksModuleCard')));
+    await tester.pumpAndSettle();
+
+    final titles = tester.widgetList<ListTile>(find.byType(ListTile)).toList();
+    expect((titles[0].title as Text).data, 'Task vicina');
+    expect((titles[1].title as Text).data, 'Task lontana');
+  });
+
+  testWidgets('opens task details and can navigate to edit', (tester) async {
+    await pumpHomeLogistics(
+      tester,
+      InMemoryInventoryStore(null, null, null, null, [
+        HomeTask(
+          id: 1,
+          title: 'Pulire bagno',
+          notes: 'Usare anticalcare',
+          recurrenceDays: 7,
+          nextDueDate: DateTime.now(),
+        ),
+      ]),
+    );
+
+    await tester.tap(find.byKey(const Key('tasksModuleCard')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pulire bagno').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dettagli attivita'), findsOneWidget);
+    expect(find.text('Usare anticalcare'), findsOneWidget);
+    expect(find.text('Ogni 7 giorni'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('editTaskDetailsButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Modifica attivita'), findsOneWidget);
+    expect(find.byKey(const Key('taskTitleField')), findsOneWidget);
+  });
+
   testWidgets('deletes a task completion log', (tester) async {
     await pumpHomeLogistics(
       tester,
