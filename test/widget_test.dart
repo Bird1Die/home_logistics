@@ -6,43 +6,57 @@ import 'package:home_logistics/models/home_store.dart';
 import 'package:home_logistics/models/inventory_item.dart';
 import 'package:home_logistics/storage/in_memory_inventory_store.dart';
 
-void main() {
-  testWidgets('starts with an empty inventory', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(inventoryStore: InMemoryInventoryStore()),
-    );
-    await tester.pumpAndSettle();
+Future<void> pumpHomeLogistics(
+  WidgetTester tester,
+  InMemoryInventoryStore inventoryStore,
+) async {
+  await tester.pumpWidget(HomeLogisticsApp(inventoryStore: inventoryStore));
+  await tester.pumpAndSettle();
+}
 
-    expect(find.text('Inventario casa'), findsNothing);
-    expect(find.text('Nessun item in questa categoria'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, 'Da comprare'), findsOneWidget);
-    expect(find.byKey(const Key('warningRestockCounterBadge')), findsNothing);
-    expect(find.byKey(const Key('criticalRestockCounterBadge')), findsNothing);
+Future<void> openInventoryModule(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('inventoryModuleCard')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> pumpInventoryModule(
+  WidgetTester tester,
+  InMemoryInventoryStore inventoryStore,
+) async {
+  await pumpHomeLogistics(tester, inventoryStore);
+  await openInventoryModule(tester);
+}
+
+void main() {
+  testWidgets('starts from the home dashboard', (tester) async {
+    await pumpHomeLogistics(tester, InMemoryInventoryStore());
+
+    expect(find.text('Casa'), findsOneWidget);
+    expect(find.byKey(const Key('inventoryModuleCard')), findsOneWidget);
+    expect(find.text('Inventario'), findsOneWidget);
     expect(find.byTooltip('Account'), findsOneWidget);
   });
 
   testWidgets('shows warning and critical restock counters', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            category: 'Cibo',
-            quantity: 1,
-            minimumQuantity: 2,
-          ),
-          InventoryItem(
-            id: 2,
-            name: 'Latte',
-            category: 'Cibo',
-            quantity: 0,
-            minimumQuantity: 1,
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          category: 'Cibo',
+          quantity: 1,
+          minimumQuantity: 2,
+        ),
+        InventoryItem(
+          id: 2,
+          name: 'Latte',
+          category: 'Cibo',
+          quantity: 0,
+          minimumQuantity: 1,
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('warningRestockCounterBadge')), findsOneWidget);
     expect(
@@ -66,13 +80,8 @@ void main() {
   });
 
   testWidgets('adds a custom category from the account area', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(inventoryStore: InMemoryInventoryStore()),
-    );
-    await tester.pumpAndSettle();
+    await pumpInventoryModule(tester, InMemoryInventoryStore());
 
-    await tester.tap(find.byTooltip('Account'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('Categorie'));
     await tester.pumpAndSettle();
 
@@ -86,16 +95,48 @@ void main() {
     await tester.tap(find.byKey(const Key('saveManagedCategoryButton')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byTooltip('Indietro'));
+    await tester.tap(find.text('Inventario'));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(FilterChip, 'Farmaci'), findsOneWidget);
   });
 
   testWidgets('filters items that need restock', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+        InventoryItem(
+          id: 2,
+          name: 'Detersivo piatti',
+          category: 'Detersivi',
+          quantity: 1,
+          minimumQuantity: 1,
+          unit: 'flac.',
+        ),
+      ]),
+    );
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Da comprare'));
+    await tester.pump();
+
+    expect(find.text('Detersivo piatti'), findsOneWidget);
+    expect(find.text('Pasta'), findsNothing);
+  });
+
+  testWidgets('shows items to buy from the shopping section', (tester) async {
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore(
+        [
           InventoryItem(
             id: 1,
             name: 'Pasta',
@@ -113,46 +154,10 @@ void main() {
             minimumQuantity: 1,
             unit: 'flac.',
           ),
-        ]),
+        ],
+        ['Detersivi'],
       ),
     );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.widgetWithText(FilterChip, 'Da comprare'));
-    await tester.pump();
-
-    expect(find.text('Detersivo piatti'), findsOneWidget);
-    expect(find.text('Pasta'), findsNothing);
-  });
-
-  testWidgets('shows items to buy from the shopping section', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore(
-          [
-            InventoryItem(
-              id: 1,
-              name: 'Pasta',
-              brand: 'Rummo',
-              category: 'Cibo',
-              quantity: 3,
-              minimumQuantity: 2,
-              unit: 'conf.',
-            ),
-            InventoryItem(
-              id: 2,
-              name: 'Detersivo piatti',
-              category: 'Detersivi',
-              quantity: 1,
-              minimumQuantity: 1,
-              unit: 'flac.',
-            ),
-          ],
-          ['Detersivi'],
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('shoppingCartButton')), findsNothing);
 
@@ -171,26 +176,24 @@ void main() {
   });
 
   testWidgets('shows automatic shopping items by store', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore(
-          [
-            InventoryItem(
-              id: 1,
-              name: 'Latte',
-              category: 'Cibo',
-              quantity: 1,
-              minimumQuantity: 1,
-              unit: 'conf.',
-              preferredStoreId: 1,
-            ),
-          ],
-          ['Cibo'],
-          const [HomeStore(id: 1, name: 'MD', category: 'Cibo')],
-        ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore(
+        [
+          InventoryItem(
+            id: 1,
+            name: 'Latte',
+            category: 'Cibo',
+            quantity: 1,
+            minimumQuantity: 1,
+            unit: 'conf.',
+            preferredStoreId: 1,
+          ),
+        ],
+        ['Cibo'],
+        const [HomeStore(id: 1, name: 'MD', category: 'Cibo')],
       ),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Spesa'));
     await tester.pumpAndSettle();
@@ -206,19 +209,17 @@ void main() {
   });
 
   testWidgets('adds manual shopping item to a selected store', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore(
-          null,
-          ['Cibo'],
-          const [
-            HomeStore(id: 1, name: 'MD', category: 'Cibo'),
-            HomeStore(id: 2, name: 'Castoro', category: 'Cibo'),
-          ],
-        ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore(
+        null,
+        ['Cibo'],
+        const [
+          HomeStore(id: 1, name: 'MD', category: 'Cibo'),
+          HomeStore(id: 2, name: 'Castoro', category: 'Cibo'),
+        ],
       ),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Spesa'));
     await tester.pumpAndSettle();
@@ -245,26 +246,24 @@ void main() {
   });
 
   testWidgets('marks automatic shopping item as bought', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore(
-          [
-            InventoryItem(
-              id: 1,
-              name: 'Latte',
-              category: 'Cibo',
-              quantity: 1,
-              minimumQuantity: 1,
-              unit: 'conf.',
-              preferredStoreId: 1,
-            ),
-          ],
-          ['Cibo'],
-          const [HomeStore(id: 1, name: 'MD', category: 'Cibo')],
-        ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore(
+        [
+          InventoryItem(
+            id: 1,
+            name: 'Latte',
+            category: 'Cibo',
+            quantity: 1,
+            minimumQuantity: 1,
+            unit: 'conf.',
+            preferredStoreId: 1,
+          ),
+        ],
+        ['Cibo'],
+        const [HomeStore(id: 1, name: 'MD', category: 'Cibo')],
       ),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Spesa'));
     await tester.pumpAndSettle();
@@ -285,31 +284,29 @@ void main() {
   });
 
   testWidgets('searches items by name and brand only', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            brand: 'Rummo',
-            category: 'Cibo',
-            quantity: 3,
-            minimumQuantity: 2,
-            unit: 'conf.',
-          ),
-          InventoryItem(
-            id: 2,
-            name: 'Shampoo',
-            brand: 'Nivea',
-            category: 'Bagno',
-            quantity: 2,
-            minimumQuantity: 1,
-            unit: 'flac.',
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+        InventoryItem(
+          id: 2,
+          name: 'Shampoo',
+          brand: 'Nivea',
+          category: 'Bagno',
+          quantity: 2,
+          minimumQuantity: 1,
+          unit: 'flac.',
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     await tester.enterText(
       find.byKey(const Key('inventorySearchField')),
@@ -340,31 +337,29 @@ void main() {
   });
 
   testWidgets('combines search with category filters', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            brand: 'Rummo',
-            category: 'Cibo',
-            quantity: 3,
-            minimumQuantity: 2,
-            unit: 'conf.',
-          ),
-          InventoryItem(
-            id: 2,
-            name: 'Detersivo piatti',
-            brand: 'Svelto',
-            category: 'Detersivi',
-            quantity: 1,
-            minimumQuantity: 1,
-            unit: 'flac.',
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+        InventoryItem(
+          id: 2,
+          name: 'Detersivo piatti',
+          brand: 'Svelto',
+          category: 'Detersivi',
+          quantity: 1,
+          minimumQuantity: 1,
+          unit: 'flac.',
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.widgetWithText(FilterChip, 'Da comprare'));
     await tester.pump();
@@ -379,10 +374,7 @@ void main() {
   });
 
   testWidgets('adds a new inventory item', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(inventoryStore: InMemoryInventoryStore(null, ['Cibo'])),
-    );
-    await tester.pumpAndSettle();
+    await pumpInventoryModule(tester, InMemoryInventoryStore(null, ['Cibo']));
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
@@ -406,22 +398,20 @@ void main() {
   });
 
   testWidgets('updates item quantity from the list', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            brand: 'Rummo',
-            category: 'Cibo',
-            quantity: 3,
-            minimumQuantity: 2,
-            unit: 'conf.',
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('3'), findsOneWidget);
 
@@ -433,22 +423,20 @@ void main() {
   });
 
   testWidgets('edits an existing inventory item', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            brand: 'Rummo',
-            category: 'Cibo',
-            quantity: 3,
-            minimumQuantity: 2,
-            unit: 'conf.',
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pumpAndSettle();
@@ -469,22 +457,20 @@ void main() {
   });
 
   testWidgets('deletes an existing inventory item', (tester) async {
-    await tester.pumpWidget(
-      HomeLogisticsApp(
-        inventoryStore: InMemoryInventoryStore([
-          InventoryItem(
-            id: 1,
-            name: 'Pasta',
-            brand: 'Rummo',
-            category: 'Cibo',
-            quantity: 3,
-            minimumQuantity: 2,
-            unit: 'conf.',
-          ),
-        ]),
-      ),
+    await pumpInventoryModule(
+      tester,
+      InMemoryInventoryStore([
+        InventoryItem(
+          id: 1,
+          name: 'Pasta',
+          brand: 'Rummo',
+          category: 'Cibo',
+          quantity: 3,
+          minimumQuantity: 2,
+          unit: 'conf.',
+        ),
+      ]),
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('Pasta'), findsOneWidget);
 

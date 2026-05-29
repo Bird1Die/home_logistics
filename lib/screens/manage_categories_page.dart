@@ -7,9 +7,14 @@ import '../storage/inventory_store.dart';
 import '../widgets/unfocus_on_tap.dart';
 
 class ManageCategoriesPage extends StatefulWidget {
-  const ManageCategoriesPage({required this.inventoryStore, super.key});
+  const ManageCategoriesPage({
+    required this.inventoryStore,
+    this.embedded = false,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final bool embedded;
 
   @override
   State<ManageCategoriesPage> createState() => _ManageCategoriesPageState();
@@ -191,6 +196,62 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Scaffold(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Categorie'),
+              leading: IconButton(
+                tooltip: 'Indietro',
+                onPressed: _close,
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addCategory,
+        icon: const Icon(Icons.add),
+        label: const Text('Categoria'),
+      ),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _categories.isEmpty
+            ? const Center(child: Text('Nessuna categoria'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                itemCount: _categories.length,
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      title: Text(category),
+                      trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          IconButton(
+                            tooltip: 'Modifica',
+                            onPressed: () => _editCategory(category),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Elimina',
+                            onPressed: () => _deleteCategory(category),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -198,55 +259,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
           _close();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Categorie'),
-          leading: IconButton(
-            tooltip: 'Indietro',
-            onPressed: _close,
-            icon: const Icon(Icons.arrow_back),
-          ),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _addCategory,
-          icon: const Icon(Icons.add),
-          label: const Text('Categoria'),
-        ),
-        body: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _categories.isEmpty
-              ? const Center(child: Text('Nessuna categoria'))
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        title: Text(category),
-                        trailing: Wrap(
-                          spacing: 4,
-                          children: [
-                            IconButton(
-                              tooltip: 'Modifica',
-                              onPressed: () => _editCategory(category),
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
-                            IconButton(
-                              tooltip: 'Elimina',
-                              onPressed: () => _deleteCategory(category),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ),
+      child: content,
     );
   }
 }

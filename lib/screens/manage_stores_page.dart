@@ -5,9 +5,14 @@ import '../storage/inventory_store.dart';
 import '../widgets/unfocus_on_tap.dart';
 
 class ManageStoresPage extends StatefulWidget {
-  const ManageStoresPage({required this.inventoryStore, super.key});
+  const ManageStoresPage({
+    required this.inventoryStore,
+    this.embedded = false,
+    super.key,
+  });
 
   final InventoryStore inventoryStore;
+  final bool embedded;
 
   @override
   State<ManageStoresPage> createState() => _ManageStoresPageState();
@@ -211,6 +216,63 @@ class _ManageStoresPageState extends State<ManageStoresPage> {
 
   @override
   Widget build(BuildContext context) {
+    final content = Scaffold(
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: const Text('Negozi'),
+              leading: IconButton(
+                tooltip: 'Indietro',
+                onPressed: _close,
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addStore,
+        icon: const Icon(Icons.add_business_outlined),
+        label: const Text('Negozio'),
+      ),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _stores.isEmpty
+            ? const Center(child: Text('Nessun negozio'))
+            : ListView.builder(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                itemCount: _stores.length,
+                itemBuilder: (context, index) {
+                  final store = _stores[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      title: Text(store.name),
+                      subtitle: Text(store.category),
+                      trailing: Wrap(
+                        spacing: 4,
+                        children: [
+                          IconButton(
+                            tooltip: 'Modifica',
+                            onPressed: () => _editStore(store),
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                          IconButton(
+                            tooltip: 'Elimina',
+                            onPressed: () => _deleteStore(store),
+                            icon: const Icon(Icons.delete_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+    );
+
+    if (widget.embedded) {
+      return content;
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -218,56 +280,7 @@ class _ManageStoresPageState extends State<ManageStoresPage> {
           _close();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Negozi'),
-          leading: IconButton(
-            tooltip: 'Indietro',
-            onPressed: _close,
-            icon: const Icon(Icons.arrow_back),
-          ),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _addStore,
-          icon: const Icon(Icons.add_business_outlined),
-          label: const Text('Negozio'),
-        ),
-        body: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _stores.isEmpty
-              ? const Center(child: Text('Nessun negozio'))
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                  itemCount: _stores.length,
-                  itemBuilder: (context, index) {
-                    final store = _stores[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        title: Text(store.name),
-                        subtitle: Text(store.category),
-                        trailing: Wrap(
-                          spacing: 4,
-                          children: [
-                            IconButton(
-                              tooltip: 'Modifica',
-                              onPressed: () => _editStore(store),
-                              icon: const Icon(Icons.edit_outlined),
-                            ),
-                            IconButton(
-                              tooltip: 'Elimina',
-                              onPressed: () => _deleteStore(store),
-                              icon: const Icon(Icons.delete_outline),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-        ),
-      ),
+      child: content,
     );
   }
 }

@@ -1,36 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../screens/manage_categories_page.dart';
-import '../screens/manage_stores_page.dart';
 import '../screens/settings_page.dart';
-import '../storage/inventory_store.dart';
 
 class AccountDrawer extends StatelessWidget {
   const AccountDrawer({
-    required this.inventoryStore,
     required this.themeMode,
     required this.onThemeModeChanged,
-    required this.onDataChanged,
     this.onSignOut,
     super.key,
   });
 
-  final InventoryStore inventoryStore;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
-  final VoidCallback onDataChanged;
   final VoidCallback? onSignOut;
-
-  Future<void> _openManagementPage(BuildContext context, Widget page) async {
-    final navigator = Navigator.of(context);
-    Navigator.of(context).pop();
-    final changed = await navigator.push<bool>(
-      MaterialPageRoute(builder: (_) => page),
-    );
-    if (changed == true) {
-      onDataChanged();
-    }
-  }
 
   Future<void> _openSettings(BuildContext context) async {
     final navigator = Navigator.of(context);
@@ -65,22 +47,6 @@ class AccountDrawer extends StatelessWidget {
                   : const Text('Home Logistics'),
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.category_outlined),
-              title: const Text('Categorie'),
-              onTap: () => _openManagementPage(
-                context,
-                ManageCategoriesPage(inventoryStore: inventoryStore),
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.storefront_outlined),
-              title: const Text('Negozi'),
-              onTap: () => _openManagementPage(
-                context,
-                ManageStoresPage(inventoryStore: inventoryStore),
-              ),
-            ),
             ListTile(
               leading: const Icon(Icons.settings_outlined),
               title: const Text('Impostazioni'),
