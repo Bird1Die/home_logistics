@@ -1,11 +1,11 @@
 {
-    "name": "home_logistics",
-    "short_name": "home_logistics",
+    "name": "Home Logistics",
+    "short_name": "Home",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#1565C0",
+    "theme_color": "#1565C0",
+    "description": "Inventario casa e lista della spesa intelligente.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
