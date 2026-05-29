@@ -50,56 +50,6 @@ class _TasksPageState extends State<TasksPage> {
     await _loadTasks();
   }
 
-  Future<void> _openEditTaskPage(HomeTask task) async {
-    final updatedTask = await Navigator.of(context).push<HomeTask>(
-      MaterialPageRoute(
-        builder: (_) => AddTaskPage(
-          initialTask: task,
-          onDelete: () => _confirmDeleteTask(task),
-        ),
-      ),
-    );
-    if (updatedTask == null) {
-      return;
-    }
-
-    await widget.inventoryStore.updateTask(updatedTask);
-    await _loadTasks();
-  }
-
-  Future<void> _confirmDeleteTask(HomeTask task) async {
-    final shouldDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Elimina attivita'),
-        content: Text('Vuoi eliminare ${task.title}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Annulla'),
-          ),
-          FilledButton.tonalIcon(
-            key: const Key('confirmDeleteTaskButton'),
-            onPressed: () => Navigator.of(context).pop(true),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Elimina'),
-          ),
-        ],
-      ),
-    );
-    if (shouldDelete != true) {
-      return;
-    }
-
-    await widget.inventoryStore.deleteTask(task);
-    if (!mounted) {
-      return;
-    }
-
-    Navigator.of(context).pop();
-    await _loadTasks();
-  }
-
   Future<void> _completeTask(HomeTask task) async {
     await widget.inventoryStore.completeTask(task);
     await _loadTasks();
@@ -149,7 +99,6 @@ class _TasksPageState extends State<TasksPage> {
                           tasks: overdueTasks,
                           status: _TaskStatus.overdue,
                           onComplete: _completeTask,
-                          onEdit: _openEditTaskPage,
                           onOpenDetails: _openTaskDetailsPage,
                         ),
                       if (todayTasks.isNotEmpty)
@@ -158,7 +107,6 @@ class _TasksPageState extends State<TasksPage> {
                           tasks: todayTasks,
                           status: _TaskStatus.today,
                           onComplete: _completeTask,
-                          onEdit: _openEditTaskPage,
                           onOpenDetails: _openTaskDetailsPage,
                         ),
                       if (upcomingTasks.isNotEmpty)
@@ -167,7 +115,6 @@ class _TasksPageState extends State<TasksPage> {
                           tasks: upcomingTasks,
                           status: _TaskStatus.upcoming,
                           onComplete: _completeTask,
-                          onEdit: _openEditTaskPage,
                           onOpenDetails: _openTaskDetailsPage,
                         ),
                     ],
@@ -198,7 +145,6 @@ class _TaskSection extends StatelessWidget {
     required this.tasks,
     required this.status,
     required this.onComplete,
-    required this.onEdit,
     required this.onOpenDetails,
   });
 
@@ -206,7 +152,6 @@ class _TaskSection extends StatelessWidget {
   final List<HomeTask> tasks;
   final _TaskStatus status;
   final ValueChanged<HomeTask> onComplete;
-  final ValueChanged<HomeTask> onEdit;
   final ValueChanged<HomeTask> onOpenDetails;
 
   @override
@@ -228,7 +173,6 @@ class _TaskSection extends StatelessWidget {
             task: task,
             status: status,
             onComplete: () => onComplete(task),
-            onEdit: () => onEdit(task),
             onOpenDetails: () => onOpenDetails(task),
           ),
         ),
@@ -243,14 +187,12 @@ class _TaskCard extends StatelessWidget {
     required this.task,
     required this.status,
     required this.onComplete,
-    required this.onEdit,
     required this.onOpenDetails,
   });
 
   final HomeTask task;
   final _TaskStatus status;
   final VoidCallback onComplete;
-  final VoidCallback onEdit;
   final VoidCallback onOpenDetails;
 
   @override
@@ -288,11 +230,6 @@ class _TaskCard extends StatelessWidget {
               tooltip: 'Completa',
               onPressed: onComplete,
               icon: const Icon(Icons.check_circle_outline),
-            ),
-            IconButton(
-              tooltip: 'Modifica',
-              onPressed: onEdit,
-              icon: const Icon(Icons.edit_outlined),
             ),
           ],
         ),

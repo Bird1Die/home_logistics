@@ -365,44 +365,49 @@ class _HomeModuleCard extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: colorScheme.primaryContainer,
-                foregroundColor: colorScheme.onPrimaryContainer,
-                child: Icon(icon),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: SizedBox(
+            height: 72,
+            child: Stack(
+              children: [
+                Row(
                   children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                    CircleAvatar(
+                      backgroundColor: colorScheme.primaryContainer,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      child: Icon(icon),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 64),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              title,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
+                    const Align(
+                      alignment: Alignment.topRight,
+                      child: Icon(Icons.chevron_right),
                     ),
                   ],
                 ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Icon(Icons.chevron_right),
-                  if (trailingBadge != null) ...[
-                    const SizedBox(height: 12),
-                    trailingBadge!,
-                  ],
-                ],
-              ),
-            ],
+                if (trailingBadge != null)
+                  Positioned(right: 0, bottom: 0, child: trailingBadge!),
+              ],
+            ),
           ),
         ),
       ),
