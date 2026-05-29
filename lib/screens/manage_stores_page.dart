@@ -196,7 +196,6 @@ class _ManageStoresPageState extends State<ManageStoresPage> {
         ),
       ),
     );
-    nameController.dispose();
     return store;
   }
 

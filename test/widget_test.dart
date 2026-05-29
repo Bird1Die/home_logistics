@@ -16,23 +16,31 @@ void main() {
     expect(find.text('Inventario casa'), findsOneWidget);
     expect(find.text('Nessun item in questa categoria'), findsOneWidget);
     expect(find.widgetWithText(FilterChip, 'Da comprare'), findsOneWidget);
-    expect(find.widgetWithText(ActionChip, 'Categoria'), findsOneWidget);
+    expect(find.byTooltip('Account'), findsOneWidget);
   });
 
-  testWidgets('adds a custom category', (tester) async {
+  testWidgets('adds a custom category from the account area', (tester) async {
     await tester.pumpWidget(
       HomeLogisticsApp(inventoryStore: InMemoryInventoryStore()),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('addCategoryChip')));
+    await tester.tap(find.byTooltip('Account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Categorie'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.widgetWithText(FloatingActionButton, 'Categoria'));
     await tester.pumpAndSettle();
 
     await tester.enterText(
-      find.byKey(const Key('categoryNameField')),
+      find.byKey(const Key('managedCategoryNameField')),
       'Farmaci',
     );
-    await tester.tap(find.byKey(const Key('saveCategoryButton')));
+    await tester.tap(find.byKey(const Key('saveManagedCategoryButton')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Indietro'));
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(FilterChip, 'Farmaci'), findsOneWidget);

@@ -145,6 +145,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
         child: AlertDialog(
           title: Text(title),
           content: TextField(
+            key: const Key('managedCategoryNameField'),
             controller: controller,
             autofocus: true,
             decoration: const InputDecoration(
@@ -161,6 +162,7 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
               child: const Text('Annulla'),
             ),
             FilledButton.icon(
+              key: const Key('saveManagedCategoryButton'),
               onPressed: () => Navigator.of(context).pop(controller.text),
               icon: const Icon(Icons.check),
               label: const Text('Salva'),
@@ -169,7 +171,6 @@ class _ManageCategoriesPageState extends State<ManageCategoriesPage> {
         ),
       ),
     );
-    controller.dispose();
 
     final normalizedValue = value?.trim();
     if (normalizedValue == null || normalizedValue.isEmpty) {

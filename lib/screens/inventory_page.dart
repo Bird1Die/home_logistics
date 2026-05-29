@@ -209,79 +209,6 @@ class _InventoryPageState extends State<InventoryPage> {
     });
   }
 
-  Future<void> _openAddCategoryDialog() async {
-    var categoryName = '';
-
-    final category = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return UnfocusOnTap(
-          child: AlertDialog(
-            title: const Text('Nuova categoria'),
-            content: TextField(
-              key: const Key('categoryNameField'),
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Nome categoria',
-                border: OutlineInputBorder(),
-              ),
-              textInputAction: TextInputAction.done,
-              textCapitalization: TextCapitalization.words,
-              onChanged: (value) {
-                categoryName = value;
-              },
-              onSubmitted: (value) => Navigator.of(context).pop(value),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Annulla'),
-              ),
-              FilledButton.icon(
-                key: const Key('saveCategoryButton'),
-                onPressed: () => Navigator.of(context).pop(categoryName),
-                icon: const Icon(Icons.add),
-                label: const Text('Aggiungi'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    final normalizedCategory = category?.trim();
-    if (normalizedCategory == null || normalizedCategory.isEmpty) {
-      return;
-    }
-
-    final alreadyExists = _categories.any(
-      (existingCategory) =>
-          existingCategory.toLowerCase() == normalizedCategory.toLowerCase(),
-    );
-
-    if (alreadyExists) {
-      if (!mounted) {
-        return;
-      }
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('$normalizedCategory esiste gia')));
-      return;
-    }
-
-    await widget.inventoryStore.addCategory(normalizedCategory);
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _categories.add(normalizedCategory);
-      _categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    });
-  }
-
   Future<void> _changeQuantity(InventoryItem item, int change) async {
     final updatedItem = item.copyWith(
       quantity: (item.quantity + change).clamp(0, 999),
@@ -392,12 +319,6 @@ class _InventoryPageState extends State<InventoryPage> {
                         ),
                       );
                     }),
-                    ActionChip(
-                      key: const Key('addCategoryChip'),
-                      avatar: const Icon(Icons.add),
-                      label: const Text('Categoria'),
-                      onPressed: _openAddCategoryDialog,
-                    ),
                   ],
                 ),
               ),

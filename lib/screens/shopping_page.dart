@@ -172,111 +172,6 @@ class _ShoppingPageState extends State<ShoppingPage> {
         .toList(growable: false);
   }
 
-  Future<void> _openAddStoreDialog() async {
-    if (_categories.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Crea prima una categoria')));
-      return;
-    }
-
-    var storeName = '';
-    var category = _categories.first;
-
-    final store = await showDialog<HomeStore>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return UnfocusOnTap(
-              child: AlertDialog(
-                title: const Text('Nuovo negozio'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      key: const Key('storeNameField'),
-                      autofocus: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome negozio',
-                        border: OutlineInputBorder(),
-                      ),
-                      textInputAction: TextInputAction.done,
-                      textCapitalization: TextCapitalization.words,
-                      onChanged: (value) {
-                        storeName = value;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: category,
-                      decoration: const InputDecoration(
-                        labelText: 'Categoria',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _categories
-                          .map(
-                            (category) => DropdownMenuItem(
-                              value: category,
-                              child: Text(category),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) {
-                          return;
-                        }
-                        setDialogState(() {
-                          category = value;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Annulla'),
-                  ),
-                  FilledButton.icon(
-                    key: const Key('saveStoreButton'),
-                    onPressed: () {
-                      final normalizedName = storeName.trim();
-                      if (normalizedName.isEmpty) {
-                        return;
-                      }
-                      Navigator.of(context).pop(
-                        HomeStore(name: normalizedName, category: category),
-                      );
-                    },
-                    icon: const Icon(Icons.add_business_outlined),
-                    label: const Text('Aggiungi'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-
-    if (store == null) {
-      return;
-    }
-
-    final savedStore = await widget.inventoryStore.addStore(store);
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      final alreadyExists = _stores.any((store) => store.id == savedStore.id);
-      if (!alreadyExists) {
-        _stores.add(savedStore);
-      }
-    });
-  }
-
   Future<void> _openAddManualEntryDialog() async {
     if (_categories.isEmpty) {
       ScaffoldMessenger.of(
@@ -554,28 +449,6 @@ class _ShoppingPageState extends State<ShoppingPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      key: const Key('addManualEntryButton'),
-                      onPressed: _openAddManualEntryDialog,
-                      icon: const Icon(Icons.add_shopping_cart_outlined),
-                      label: const Text('Item manuale'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      key: const Key('addStoreButton'),
-                      onPressed: _openAddStoreDialog,
-                      icon: const Icon(Icons.add_business_outlined),
-                      label: const Text('Negozio'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
               if (_isLoading)
                 const Center(
                   child: Padding(
@@ -615,6 +488,12 @@ class _ShoppingPageState extends State<ShoppingPage> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        key: const Key('addManualEntryButton'),
+        tooltip: 'Aggiungi item manuale',
+        onPressed: _openAddManualEntryDialog,
+        child: const Icon(Icons.add),
       ),
     );
   }
