@@ -116,30 +116,6 @@ class _AddItemPageState extends State<AddItemPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Modifica item' : 'Nuovo item')),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-        child: Row(
-          children: [
-            if (_isEditing && widget.onDelete != null)
-              Expanded(
-                child: FilledButton.tonalIcon(
-                  onPressed: widget.onDelete,
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Elimina'),
-                ),
-              ),
-            if (_isEditing && widget.onDelete != null) const SizedBox(width: 8),
-            Expanded(
-              child: FilledButton.icon(
-                key: const Key('saveItemButton'),
-                onPressed: _saveItem,
-                icon: const Icon(Icons.save_outlined),
-                label: Text(_isEditing ? 'Salva modifiche' : 'Salva item'),
-              ),
-            ),
-          ],
-        ),
-      ),
       body: SafeArea(
         child: UnfocusOnTap(
           child: Form(
@@ -267,6 +243,36 @@ class _AddItemPageState extends State<AddItemPage> {
             ),
           ),
         ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Stack(
+        children: [
+          if (_isEditing && widget.onDelete != null)
+            Positioned(
+              left: 32,
+              bottom: 0,
+              child: FloatingActionButton(
+                heroTag: 'deleteItemFab',
+                key: const Key('deleteItemButton'),
+                tooltip: 'Elimina',
+                onPressed: widget.onDelete,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                child: const Icon(Icons.delete_outline),
+              ),
+            ),
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: FloatingActionButton(
+              heroTag: 'saveItemFab',
+              key: const Key('saveItemButton'),
+              tooltip: 'Salva',
+              onPressed: _saveItem,
+              child: const Icon(Icons.save_outlined),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -490,7 +490,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.edit_outlined).first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.delete_outline));
+    await tester.tap(find.byKey(const Key('deleteItemButton')));
     await tester.pumpAndSettle();
 
     expect(find.text('Elimina item'), findsOneWidget);
